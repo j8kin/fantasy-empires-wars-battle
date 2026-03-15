@@ -207,33 +207,63 @@ DRIVEN attacker must retreat.
 
 The battlefield represents a **1 km × 1 km** real-world area.
 
+#### Entity Sizes
+
+All entity sizes live in `WORLD_CONFIG` — edit here to tune spacing, no other changes needed:
+
 ```typescript
 // src/game/config/worldConfig.ts
 export const WORLD_CONFIG = {
   widthMeters:  1000,
   heightMeters: 1000,
-  metersToPixels: 4,      // 1 m = 4 world units; world = 4000 × 4000 px
+  metersToPixels: 4,        // 1 m = 4 px; world = 4000 × 4000 px
 
-  // Camera viewport (how much of the world is visible at each zoom level)
+  // ── Entity sizes (meters) ─────────────────────────────────────────────────
+  packSizeMeters:      30,                    // 30 × 30 m deploy footprint per pack
+  unitSizeMeters:       2,                    // 2 × 2 m individual unit (Battle Phase)
+  warMachineSizeMeters: { w: 5,  h: 10 },    // Catapult / Ballista / Battering Ram
+  siegeTowerSizeMeters: { w: 10, h: 10 },    // Siege Tower
+
+  // ── Battle Phase camera ───────────────────────────────────────────────────
   defaultViewportMeters: 100,   // default: 100 × 100 m visible
   minZoomMeters:          30,   // max zoom-in:  30 × 30 m visible
   maxZoomMeters:         250,   // max zoom-out: 250 × 250 m visible
 } as const;
 ```
 
-At default zoom the player sees a **100 m × 100 m** window of the battlefield.
-The camera can pan freely across the full 1000 × 1000 m world and zoom between the limits above.
+#### Deploy Phase Camera
 
-#### Camera Starting Position
+During the Deploy Phase the camera is **fixed** — the full 1000 × 1000 m battlefield is
+visible on screen simultaneously. Zoom and pan controls are disabled.
+Phaser sets the camera zoom so the entire world fits inside the Battlefield panel content area.
 
-- **Deploy Phase:** camera starts centred on the player's deploy zone midpoint.
-- **Battle Phase:** camera retains its position from Deploy Phase when the transition occurs.
+This serves two purposes:
+1. The player sees the full strategic picture and places packs with full context.
+2. Zone boundary frames (React overlays) map directly to proportional canvas heights —
+   attacker zone = top 20%, neutral = next 10%, defender = bottom 70%. No world-to-screen
+   coordinate tracking is needed.
+
+#### Battle Phase Camera
+
+On transition to Battle Phase the camera switches to a panning view centred on the player's
+deploy zone. Controls are implemented first and fine-tuned after initial playtest:
+
+| Input | Action |
+|---|---|
+| Middle-mouse drag or right-click drag | Pan |
+| Scroll wheel | Zoom in / out |
+| WASD / arrow keys | Pan |
+| Mouse at screen edge | Edge-scroll pan |
+
+Camera is clamped to world bounds at all times. Zoom range: 30 m (max in) to 250 m (max out).
 
 #### Minimap
 
-A small **minimap overlay** (part of the UIScene) shows the full battlefield and the
-current camera viewport rectangle. Clicking or dragging on the minimap pans the camera.
-Units are represented as colour-coded dots (faction colour).
+A small **minimap** (part of `BattleUIScene` — **Battle Phase only**, not shown during Deploy)
+shows:
+- The full 1000 × 1000 m world at reduced scale
+- The current camera viewport rectangle (drag to pan the camera)
+- Unit dots: **player army = blue**, **enemy army = red** (regardless of attacker/defender role)
 
 ---
 
@@ -343,44 +373,72 @@ rectangle whenever `textureKey` is not yet loaded.
 
 ### 5.1 Flow
 
-1. Battlefield renders with **zone boundary lines** clearly visible (see Zone Visuals below)
-2. Player's **army panel** on the side lists all packs grouped by unit type
-3. Player clicks a pack in the panel → clicks a position in their deploy zone to place it
-4. Placed pack shows as a single sprite with a count badge (e.g., "×20")
-5. Packs can be dragged and repositioned until "Ready" is confirmed
-6. War machine placement triggers the loading dialog (§5.2)
-7. Opponent deploys simultaneously via AI (hidden until battle starts)
-8. **"Ready for Battle"** → transitions to Battle Phase
+#### Screen Layout
 
-All UI panels during the Deploy Phase are React components rendered as a DOM overlay on top
-of the Phaser `<canvas>`. Every panel uses **`FantasyBorderFrame`** for its window border
-(see §8 — React UI Overlay).
+```
+┌───────────────────────────────────────────────────────────────────────┐
+│  Army Panel (FantasyBorderFrame, ~240 px wide)  │  Battlefield         │
+│                                                 │  (FantasyBorderFrame  │
+│  [pack list grouped by unit type]               │   containing Phaser   │
+│  [unit count / deployed count per type]         │   canvas)             │
+│  [pack info panel — shown on selection]         │                       │
+│                                                 │  [full 1000×1000 m    │
+│                                                 │   world visible]      │
+│                                                 │                       │
+│  [Ready for Battle btn] [Retreat btn]           │                       │
+└───────────────────────────────────────────────────────────────────────┘
+```
+
+#### Deployment Steps
+
+1. **Full battlefield visible** — the entire 1000 × 1000 m world is shown at once (fixed camera,
+   no pan/zoom). This is the "preliminary map" used for strategic pack placement.
+2. Zone boundaries are drawn with celtic-style borders (see Zone Visuals below).
+3. Player's **Army Panel** (left side) lists all packs grouped by unit type with counts.
+4. Player **clicks a pack row** in the army panel → enters placement mode:
+   - A **ghost rectangle** (unit colour darkened) follows the cursor on the Phaser canvas.
+   - Cursor over **valid position in own deploy zone**: ghost shown normally.
+   - Cursor over **invalid position** (wrong zone, overlap with existing pack): ghost tinted **red**.
+   - **Left-click** on a valid position → pack is placed; ghost disappears.
+   - **Right-click** or clicking a different pack row in the panel → cancels placement mode.
+5. Placed pack shows as a coloured rectangle (Phase 1) with a **count badge** (e.g. "×20").
+6. Clicking a placed pack (on canvas) **or** its row in the army panel:
+   - Shows a **pack info panel** (unit type, rank, count, combat stats summary).
+   - Offers a **Remove** action to unplace the pack (returns it to the army panel list).
+7. **No overlap** — two packs cannot occupy the same position. Pack footprint = 30 × 30 m.
+   A pack's ghost turns red if it would overlap an already-placed pack.
+8. **War machine placement** triggers the crew loading dialog (§5.2).
+9. Opponent deploys simultaneously via AI (hidden until battle starts).
+10. **"Ready for Battle"** button becomes enabled as soon as **at least one pack** has been placed.
+    All unplaced packs enter the reinforcement queue automatically.
+11. **"Retreat"** button is always available — lets the player abort the battle entirely before
+    it starts (e.g. attacker sees walls with no siege equipment). Result: `BattleResult.endCondition = 'retreat'`.
+12. Confirming "Ready for Battle" → **fade to black** → transitions to Battle Phase.
+
+All UI panels use **`FantasyBorderFrame`** for borders (see §8 — React UI Overlay).
 
 #### Zone Visuals (Deploy Phase only)
 
-Zone boundaries use the **celtic-style border assets** already present in the TBS application,
-giving a consistent look across both game modes.
+Since the camera is fixed and the full world is visible, zone boundaries map directly to
+proportional heights of the Phaser canvas. This allows React `FantasyBorderFrame` overlays
+to be positioned as CSS percentages of the canvas height — no world coordinate tracking needed.
 
-Each zone area is wrapped in a `<FantasyBorderFrame>` with `accessible={true}` (no backdrop)
-and `flexibleSizing={true}`, sized to cover the zone rectangle on screen.
-This gives each zone the same decorative celtic border used elsewhere in the game.
+Zone boundaries use the **celtic-style border assets** from the TBS application.
 
-- **Background:** the Phaser scene renders `CelticBackground.png` tiled across the full world
-  (see §4.3). The zone `FantasyBorderFrame` overlays are transparent — the stone texture
-  shows through them. Each frame may apply a CSS darkening filter for the shadowing rules below.
-- **Borders:** `FantasyBorderFrame` corner ornaments + horizontal/vertical border tiles mark
-  zone edges — attacker zone, neutral zone, and defender zone each get their own frame.
+- **Background:** `CelticBackground.png` tiled across the full world (see §4.3). Zone frames
+  are transparent — the stone texture shows through. Darkening is applied via CSS filter.
+- **Borders:** each zone gets its own `FantasyBorderFrame` (attacker, neutral, defender).
 - **Shadowing rules:**
-  - Player is **attacker** → defender zone (bottom 70%) is visible but darkened; neutral zone darkened.
-  - Player is **defender** → attacker zone (top 20%) is visible but darkened; neutral zone darkened.
+  - Player is **attacker** → defender zone (bottom 70%) darkened; neutral zone darkened.
+  - Player is **defender** → attacker zone (top 20%) darkened; neutral zone darkened.
   - Player's **own deploy zone** is fully lit and clear.
-- **Labels:** each zone displays a text label ("ATTACKER ZONE", "NEUTRAL", "DEFENDER ZONE")
-  inside the frame's content area.
-- **During battle:** all zone overlay frames are unmounted; the full battlefield is equally lit.
+- **Labels:** "ATTACKER ZONE", "NEUTRAL", "DEFENDER ZONE" inside each frame's content area.
+- **During battle:** all zone overlay frames are unmounted; full battlefield equally lit.
 
 #### Army Panel
 
-The army panel is a `<FantasyBorderFrame>` docked to the side of the screen:
+The army panel is a `<FantasyBorderFrame>` docked to the **left** side of the screen.
+"Ready for Battle" and "Retreat" are the two bottom buttons:
 
 ```tsx
 <FantasyBorderFrame
@@ -388,11 +446,24 @@ The army panel is a `<FantasyBorderFrame>` docked to the side of the screen:
   frameSize={{ width: 240, height: windowHeight }}
   accessible={true}        // no backdrop — the Phaser canvas remains interactive
   flexibleSizing={false}   // fixed height to fill the viewport
-  primaryButton={<ReadyButton />}
+  primaryButton={<ReadyForBattleButton />}
+  secondaryButton={<RetreatButton />}
 >
-  {/* pack list, unit counts, etc. */}
+  {/* pack list grouped by unit type; each row shows unit name, rank badge, count */}
+  {/* selected pack row is highlighted; pack info panel shown beneath it */}
 </FantasyBorderFrame>
 ```
+
+#### Pack Info Panel
+
+Shown when the player clicks a pack row (army panel) or a placed pack (canvas).
+Displayed inline inside the army panel below the selected row, or as a small floating
+`FantasyBorderFrame` near the selected pack on canvas. Content:
+
+- Unit type name + rank (Regular / Veteran / Elite)
+- Unit count in pack
+- Key stats: HP, Attack, Armor, Move Speed
+- **Remove** button (only for already-placed packs — returns pack to the army list)
 
 #### War Machine Loading Dialog
 
@@ -406,7 +477,7 @@ The war machine crew-selection dialog is a centred modal `<FantasyBorderFrame>`:
   primaryButton={<ConfirmBtn />}
   secondaryButton={<CancelBtn />}
 >
-  {/* crew type label, pack selection list */}
+  {/* required crew type label, eligible pack list, confirm/cancel */}
 </FantasyBorderFrame>
 ```
 
@@ -1431,17 +1502,40 @@ machines on the field and keeps none.
 
 ## 8. Scene Architecture
 
-```
-PreloadScene
-  └─> DeployScene          Phase 1: army placement
-        └─> DeployUIScene  army list panel, war machine dialog, ready button
+#### Overall React Layout
 
-  └─> BattleScene          Phase 2: real-time combat
-        └─> BattleUIScene  selection info, target label, retreat button, battle log
+The battle module renders as two side-by-side `FantasyBorderFrame` panels filling the screen:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  <FantasyBorderFrame>          │  <FantasyBorderFrame>                       │
+│  Army Panel (240 px, left)     │  Battlefield (remaining width, right)       │
+│                                │                                             │
+│  [pack list]                   │  <div> ← Phaser canvas mounted here        │
+│  [pack info on selection]      │    [Phaser canvas fills content area]       │
+│                                │    [Zone React overlays on top — deploy]    │
+│  [Ready] [Retreat]             │    [BattleUIScene overlays — battle]        │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-Both `UIScene` variants run as **parallel overlay scenes** — same pattern as the
-existing `UIScene` in the codebase (`this.scene.launch(...)`).
+The Phaser `<canvas>` is mounted as a child of the Battlefield `FantasyBorderFrame` content area.
+Zone boundary `FantasyBorderFrame` overlays are also children of the same content area div.
+
+**Why this works for zone frames:** during the Deploy Phase the camera is fixed and shows the
+entire world. Zone boundaries map directly to proportional heights of the canvas content area
+(top 20% = attacker zone, etc.) — no world-coordinate tracking is needed.
+
+#### Phaser Scene Graph
+
+```
+PreloadScene           loads assets, shows loading screen (see below)
+  └─> DeployScene      Phase 1: full-world-visible army placement (fixed camera)
+  └─> BattleScene      Phase 2: real-time combat (pan/zoom camera)
+        └─> BattleUIScene  selection info, target label, retreat button, battle log, minimap
+```
+
+`DeployScene` has no separate `UIScene` — its UI is entirely React (Army Panel + zone frames).
+`BattleUIScene` runs as a **parallel overlay scene** launched with `this.scene.launch(...)`.
 
 **Data flow between scenes:**
 ```
@@ -1452,6 +1546,15 @@ PreloadScene ──> DeployScene ──[DeployResult]──> BattleScene ──[
 ```
 
 `DeployResult` is an internal type: positions of all placed packs + reinforcement queue.
+
+#### PreloadScene — Loading Screen
+
+The PreloadScene shows a loading screen while assets are loaded. It uses the same
+`FantasyBorderFrame`-based loading component already built for the TBS part of the game.
+The loading screen displays:
+- A centred `FantasyBorderFrame` panel (modal — `accessible={false}`)
+- A progress bar and "Loading…" text inside the frame
+- The `CelticBackground.png` (already available) as the background behind the frame
 
 #### Data Transfer Mechanism
 
@@ -1485,10 +1588,10 @@ inside Phaser scenes.
 
 #### Minimap
 
-The `BattleUIScene` includes a **minimap overlay** in a corner of the screen showing:
-- The full 1000 × 1000 m world at reduced scale
-- The current camera viewport rectangle (draggable to pan the camera)
-- Unit dots colour-coded by faction
+The `BattleUIScene` includes a **minimap overlay** (Battle Phase only — not shown during Deploy):
+- Full 1000 × 1000 m world at reduced scale in a corner of the screen
+- Current camera viewport rectangle (drag to pan the camera)
+- Unit dots: **player army = blue**, **enemy army = red** (regardless of attacker/defender role)
 
 #### React UI Overlay — `FantasyBorderFrame`
 
@@ -1538,16 +1641,18 @@ they either stay transparent (`accessible={true}`) or use a dark overlay for mod
 
 **Summary of panels and their frames:**
 
-| Panel | `accessible` | `flexibleSizing` | Notes |
-|---|---|---|---|
-| Attacker zone border | `true` | `true` | Covers 20% height zone rectangle |
-| Neutral zone border | `true` | `true` | Covers 10% height zone rectangle |
-| Defender zone border | `true` | `true` | Covers 70% height zone rectangle |
-| Army panel (deploy) | `true` | `false` | Docked left/right; full viewport height |
-| War machine loading dialog | `false` | `false` | Centred modal; includes Confirm + Cancel buttons |
-| Retreat confirmation dialog | `false` | `false` | Centred modal; includes Confirm + Cancel buttons |
-| Battle log panel | `true` | `true` | Docked corner; scrollable content |
-| Selection info panel | `true` | `true` | Shows selected pack stats |
+| Panel | Phase | `accessible` | `flexibleSizing` | Notes |
+|---|---|---|---|---|
+| Battlefield outer frame | Both | `true` | `false` | Right side; contains Phaser canvas + zone frames |
+| Attacker zone border | Deploy | `true` | `true` | Child of battlefield frame; top 20% of canvas height |
+| Neutral zone border | Deploy | `true` | `true` | Child of battlefield frame; next 10% |
+| Defender zone border | Deploy | `true` | `true` | Child of battlefield frame; bottom 70% |
+| Army panel | Deploy | `true` | `false` | Docked **left**; full viewport height; Ready + Retreat buttons |
+| Pack info panel | Deploy | `true` | `true` | Inline in army panel or floating near selected pack |
+| War machine loading dialog | Deploy | `false` | `false` | Centred modal; Confirm + Cancel buttons |
+| Loading screen | Preload | `false` | `false` | Centred modal; progress bar + text |
+| Battle log panel | Battle | `true` | `true` | Docked corner; scrollable |
+| Selection info panel | Battle | `true` | `true` | Shows selected unit stats |
 
 ---
 
@@ -1555,8 +1660,8 @@ they either stay transparent (`accessible={true}`) or use a dark overlay for mod
 
 | Step | Scope | Key deliverables |
 |---|---|---|
-| **1 — Foundation** | Sprite system + battlefield | `UnitSpriteRegistry`, camera pan/zoom, zone rendering (20/10/70), terrain scaffold, `BattleContext` interface |
-| **2 — Deploy Phase** | Phase 1 complete | Army panel, 4×5 pack placement, war machine loading dialog, AI opponent deployment, reinforcement queue |
+| **1 — Foundation** | Sprite system + battlefield | `UnitSpriteRegistry`, `WORLD_CONFIG` entity sizes, Battlefield `FantasyBorderFrame` layout (army panel left + Phaser canvas right), fixed deploy camera (full world visible), zone rendering (20/10/70 as CSS % of canvas height), `CelticBackground.png` tiled background, `BattleContext` interface, PreloadScene loading screen |
+| **2 — Deploy Phase** | Phase 1 complete | Army panel pack list, ghost-cursor placement, overlap prevention (30×30 m footprint), pack info panel + Remove action, Ready button (enabled on first pack), Retreat button (pre-battle abort), war machine loading dialog, fade-to-black transition, AI opponent deployment, reinforcement queue, Battle Phase camera controls (pan/zoom/WASD/edge-scroll) |
 | **3 — Battle Core** | Movement + melee | Pack expansion into 4×5 formation, `RegularUnit` / `HeroUnit` classes, IDLE / MOVING / ENGAGING states, melee combat, health/death |
 | **4 — Unit AI** | Autonomous behavior | Full AI state machine, aggro radius, target priority, morale system (no hero interaction yet) |
 | **5 — Ranged Combat** | Projectiles + kiting | Projectile system, ranged unit kiting behavior, ranged `WarMachineUnit` basic fire |
@@ -1610,6 +1715,18 @@ they either stay transparent (`accessible={true}`) or use a dark overlay for mod
 | OQ-33 | Does the RTS need to know about `BuildingType` in detail? | **No.** The RTS collects the `type` string of each destroyed `StructureConfig` and returns it as `BuildingType[]` in `BattleResult.lostBuildings`. TBS interprets the list. `BuildingType = StructureConfig['type']`. See §11. |
 | OQ-34 | How are battlefield buildings provided? Are they always present? | Buildings are constructed during TBS play — **by default none exist**. TBS provides the list of present structures in `BattlefieldConfig.structures[]`. RTS returns `lostBuildings` with the types of any that were destroyed. See §2.1–2.2. |
 | OQ-35 | What component should be used for all UI windows and panels in the RTS battle module? | **`FantasyBorderFrame`** (`src/components/fantasy-border-frame/FantasyBorderFrame.tsx`). It is the standard window component shared across the whole application (TBS + RTS). Use `accessible={true}` for non-modal panels (canvas stays interactive) and `accessible={false}` for modal dialogs (backdrop blocks canvas). See §8 React UI Overlay and §5.1 Zone Visuals / Army Panel. |
+| OQ-36 | How do React zone frames track Phaser world-space zone boundaries as the camera pans? | Resolved by fixing the Deploy Phase camera — the full 1000 × 1000 m world is visible at once, no pan. Zone boundaries map directly to CSS percentages of canvas height (attacker = top 20%, neutral = next 10%, defender = bottom 70%). No world-coordinate tracking needed. The Phaser canvas is mounted inside the Battlefield `FantasyBorderFrame` content area; zone frames are siblings inside the same div. See §3.4, §5.1, §8. |
+| OQ-37 | What are entity sizes on the battlefield? | **Deploy Phase:** pack footprint = **30 × 30 m**. **Battle Phase:** individual unit = **2 × 2 m**; war machine (Catapult / Ballista / Battering Ram) = **5 × 10 m**; Siege Tower = **10 × 10 m**. All values live in `WORLD_CONFIG` for easy tuning. See §3.4. |
+| OQ-38 | What camera controls are used during the Battle Phase? | Middle-mouse drag or right-click drag to pan; scroll wheel to zoom; WASD / arrow keys to pan; edge scroll. Controls will be implemented first and fine-tuned after initial playtest. **Deploy Phase has no camera** — the full world is visible without pan/zoom. See §3.4. |
+| OQ-39 | Which side does the army panel dock to? | **Left side** always. Battlefield panel occupies the remaining width on the right. See §5.1, §8. |
+| OQ-40 | What visual feedback occurs when placing a pack (placement mode)? | A **ghost rectangle** (unit colour darkened) follows the cursor on the Phaser canvas. Cursor over valid position: normal ghost. Cursor over invalid position (wrong zone or overlap): ghost tinted **red**. Cancel: right-click or click a different pack row in the army panel. See §5.1. |
+| OQ-41 | Can two packs overlap during Deploy Phase? | **No.** Pack footprint = 30 × 30 m; no overlap allowed — same rule as Battle Phase units. Ghost turns red if placement would overlap an existing pack. See §5.1. |
+| OQ-42 | When is the Ready button enabled? What happens to unplaced packs? | Ready button enabled as soon as **at least one pack is placed**. All remaining unplaced packs enter the reinforcement queue automatically. A separate **Retreat** button (always enabled) allows aborting the battle before it starts — e.g. attacker has no siege equipment vs. walls. See §5.1. |
+| OQ-43 | What does the PreloadScene loading screen look like? | A centred `FantasyBorderFrame` (modal, `accessible={false}`) with a progress bar and "Loading…" text, backed by `CelticBackground.png`. Reuses the loading progress component already built for the TBS part of the game. See §8. |
+| OQ-44 | What transition plays when "Ready for Battle" is confirmed? | **Fade to black**, then Battle Phase begins. See §5.1. |
+| OQ-45 | What colours represent the two sides on the minimap? | **Player's army = blue dot**, **enemy army = red dot** — regardless of which side (attacker or defender) the player controls. See §3.4. |
+| OQ-46 | Is a minimap needed during the Deploy Phase? | **No.** During Deploy the full battlefield is visible (fixed camera), making a minimap redundant. Minimap is Battle Phase only (`BattleUIScene`). See §3.4. |
+| OQ-47 | How are placed packs labelled / interacted with on the canvas? | Clicking a placed pack (or its row in the army panel) opens a **pack info panel** showing unit type, rank, count, and key stats. The info panel also offers a **Remove** action that unplaces the pack and returns it to the army list. No floating count badge on the rectangle is required — info is on demand. See §5.1. |
 
 ---
 
