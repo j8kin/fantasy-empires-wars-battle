@@ -324,11 +324,18 @@ All entities are rendered as **coloured rectangles**:
 | War machine | Dark red | Larger rectangle (≈ 2× regular size) |
 | Structure (wall / gate / tower) | Stone grey | Solid colour rectangle in Phase 1 |
 
-**Background:** solid colour fill (e.g. dark green for plains) — no terrain sprite needed in Phase 1.
+**Battlefield background (all phases from Step 1):** the main Phaser scene background is
+`CelticBackground.png` (`sprites/border/CelticBackground.png`), tiled across the full
+4000 × 4000 px world. This is used from Step 1 onwards — no terrain-specific art is needed
+in Phase 1. Terrain variants (forest, snow, swamp) are additive layers on top of this base
+tile, introduced in later steps.
 
-Actual sprites are introduced from Step 3 onwards, one unit type at a time, by registering
-them in `UnitSpriteRegistry`. The placeholder falls back to the coloured rectangle
-whenever `textureKey` is not yet loaded.
+UI panels and overlays rendered on top of the Phaser canvas manage their own backgrounds
+independently (see §8 React UI Overlay).
+
+Actual unit sprites are introduced from Step 3 onwards, one unit type at a time, by
+registering them in `UnitSpriteRegistry`. The placeholder falls back to the coloured
+rectangle whenever `textureKey` is not yet loaded.
 
 ---
 
@@ -345,19 +352,63 @@ whenever `textureKey` is not yet loaded.
 7. Opponent deploys simultaneously via AI (hidden until battle starts)
 8. **"Ready for Battle"** → transitions to Battle Phase
 
+All UI panels during the Deploy Phase are React components rendered as a DOM overlay on top
+of the Phaser `<canvas>`. Every panel uses **`FantasyBorderFrame`** for its window border
+(see §8 — React UI Overlay).
+
 #### Zone Visuals (Deploy Phase only)
 
 Zone boundaries use the **celtic-style border assets** already present in the TBS application,
 giving a consistent look across both game modes.
 
-- **Background:** main battle terrain background image (solid colour in Phase 1).
-- **Borders:** decorative celtic-style border images mark zone edges.
+Each zone area is wrapped in a `<FantasyBorderFrame>` with `accessible={true}` (no backdrop)
+and `flexibleSizing={true}`, sized to cover the zone rectangle on screen.
+This gives each zone the same decorative celtic border used elsewhere in the game.
+
+- **Background:** the Phaser scene renders `CelticBackground.png` tiled across the full world
+  (see §4.3). The zone `FantasyBorderFrame` overlays are transparent — the stone texture
+  shows through them. Each frame may apply a CSS darkening filter for the shadowing rules below.
+- **Borders:** `FantasyBorderFrame` corner ornaments + horizontal/vertical border tiles mark
+  zone edges — attacker zone, neutral zone, and defender zone each get their own frame.
 - **Shadowing rules:**
   - Player is **attacker** → defender zone (bottom 70%) is visible but darkened; neutral zone darkened.
   - Player is **defender** → attacker zone (top 20%) is visible but darkened; neutral zone darkened.
   - Player's **own deploy zone** is fully lit and clear.
-- **Labels:** each zone displays a text label ("ATTACKER ZONE", "NEUTRAL", "DEFENDER ZONE").
-- **During battle:** all zone overlays are removed; the full battlefield is equally lit.
+- **Labels:** each zone displays a text label ("ATTACKER ZONE", "NEUTRAL", "DEFENDER ZONE")
+  inside the frame's content area.
+- **During battle:** all zone overlay frames are unmounted; the full battlefield is equally lit.
+
+#### Army Panel
+
+The army panel is a `<FantasyBorderFrame>` docked to the side of the screen:
+
+```tsx
+<FantasyBorderFrame
+  screenPosition={{ x: 0, y: 0 }}
+  frameSize={{ width: 240, height: windowHeight }}
+  accessible={true}        // no backdrop — the Phaser canvas remains interactive
+  flexibleSizing={false}   // fixed height to fill the viewport
+  primaryButton={<ReadyButton />}
+>
+  {/* pack list, unit counts, etc. */}
+</FantasyBorderFrame>
+```
+
+#### War Machine Loading Dialog
+
+The war machine crew-selection dialog is a centred modal `<FantasyBorderFrame>`:
+
+```tsx
+<FantasyBorderFrame
+  screenPosition={{ x: centreX, y: centreY }}
+  frameSize={{ width: 400, height: 300 }}
+  accessible={false}           // adds backdrop to block canvas interaction
+  primaryButton={<ConfirmBtn />}
+  secondaryButton={<CancelBtn />}
+>
+  {/* crew type label, pack selection list */}
+</FantasyBorderFrame>
+```
 
 ### 5.2 War Machine Loading
 
@@ -1439,6 +1490,65 @@ The `BattleUIScene` includes a **minimap overlay** in a corner of the screen sho
 - The current camera viewport rectangle (draggable to pan the camera)
 - Unit dots colour-coded by faction
 
+#### React UI Overlay — `FantasyBorderFrame`
+
+All in-game UI windows and panels are **React DOM elements** rendered on top of the Phaser
+`<canvas>` via a React component tree that is mounted alongside the canvas in the same
+container div.
+
+The standard window component is **`FantasyBorderFrame`**, located at
+`src/components/fantasy-border-frame/FantasyBorderFrame.tsx`.
+It provides the same celtic-style ornamental border used across the TBS application.
+
+**Key props:**
+
+| Prop | Type | Default | Purpose |
+|---|---|---|---|
+| `screenPosition` | `{ x, y }` | required | Absolute pixel position on screen |
+| `frameSize` | `{ width, height }` | required | Outer dimensions of the frame |
+| `children` | `ReactNode` | required | Content inside the border |
+| `primaryButton` | `ReactElement` | — | Button placed on the bottom border (e.g., Confirm) |
+| `secondaryButton` | `ReactElement` | — | Second button on the bottom border (e.g., Cancel) |
+| `tileDimensions` | `FrameSize` | `defaultTileDimensions` | Border tile size; controls corner ornament size |
+| `zIndex` | `number` | `1000` | CSS z-index of the frame |
+| `accessible` | `boolean` | `false` | `false` = renders a full-screen backdrop that blocks canvas interaction; `true` = no backdrop, canvas remains interactive |
+| `flexibleSizing` | `boolean` | `false` | `true` = content area height is `auto` (up to `maxHeight`); `false` = fixed height |
+
+**Background layering model:**
+
+```
+[ Phaser <canvas> ]   ← CelticBackground.png tiled — the battlefield ground
+[ React DOM overlay ] ← FantasyBorderFrame panels on top; each manages its own background
+                         • accessible panels: transparent content area (stone shows through)
+                         • modal dialogs:     dark fill (rgba(0,0,0,0.8)) behind content
+```
+
+The `CelticBackground.png` asset (`sprites/border/CelticBackground.png`) is the **single
+shared stone texture** for the entire battlefield. React UI layers must not replicate it —
+they either stay transparent (`accessible={true}`) or use a dark overlay for modals.
+
+**Usage rules for the RTS battle module:**
+
+- **Non-modal panels** (army panel, zone borders): `accessible={true}` — no backdrop.
+- **Modal dialogs** (war machine loading, retreat confirmation): `accessible={false}` — backdrop
+  blocks the Phaser canvas so the player must resolve the dialog before clicking the game world.
+- **Zone boundary frames**: `accessible={true}`, `flexibleSizing={true}`, sized to the zone rectangle.
+- **Side panels** (army list, battle log): `accessible={true}`, `flexibleSizing={false}`,
+  height = viewport height.
+
+**Summary of panels and their frames:**
+
+| Panel | `accessible` | `flexibleSizing` | Notes |
+|---|---|---|---|
+| Attacker zone border | `true` | `true` | Covers 20% height zone rectangle |
+| Neutral zone border | `true` | `true` | Covers 10% height zone rectangle |
+| Defender zone border | `true` | `true` | Covers 70% height zone rectangle |
+| Army panel (deploy) | `true` | `false` | Docked left/right; full viewport height |
+| War machine loading dialog | `false` | `false` | Centred modal; includes Confirm + Cancel buttons |
+| Retreat confirmation dialog | `false` | `false` | Centred modal; includes Confirm + Cancel buttons |
+| Battle log panel | `true` | `true` | Docked corner; scrollable content |
+| Selection info panel | `true` | `true` | Shows selected pack stats |
+
 ---
 
 ## 9. Development Steps
@@ -1499,6 +1609,7 @@ The `BattleUIScene` includes a **minimap overlay** in a corner of the screen sho
 | OQ-32 | Does the RTS need to read `Artifact` data? | **No.** Artifacts are opaque to the RTS — received in `HeroState.artifacts` and returned unchanged in `BattleResult`. No gameplay effect in current scope. |
 | OQ-33 | Does the RTS need to know about `BuildingType` in detail? | **No.** The RTS collects the `type` string of each destroyed `StructureConfig` and returns it as `BuildingType[]` in `BattleResult.lostBuildings`. TBS interprets the list. `BuildingType = StructureConfig['type']`. See §11. |
 | OQ-34 | How are battlefield buildings provided? Are they always present? | Buildings are constructed during TBS play — **by default none exist**. TBS provides the list of present structures in `BattlefieldConfig.structures[]`. RTS returns `lostBuildings` with the types of any that were destroyed. See §2.1–2.2. |
+| OQ-35 | What component should be used for all UI windows and panels in the RTS battle module? | **`FantasyBorderFrame`** (`src/components/fantasy-border-frame/FantasyBorderFrame.tsx`). It is the standard window component shared across the whole application (TBS + RTS). Use `accessible={true}` for non-modal panels (canvas stays interactive) and `accessible={false}` for modal dialogs (backdrop blocks canvas). See §8 React UI Overlay and §5.1 Zone Visuals / Army Panel. |
 
 ---
 
