@@ -16,9 +16,9 @@
 4. [Unit System](#4-unit-system)
 5. [Deploy Phase](#5-deploy-phase)
 6. [Battle Phase](#6-battle-phase)
-   - 6.11 Special Unit Abilities (Orc Bloodlust, Gargoyle Flight, Golem Wall-Buster, Dendrite)
+    - 6.11 Special Unit Abilities (Orc Bloodlust, Gargoyle Flight, Golem Wall-Buster, Dendrite)
 7. [Hero Aura System](#7-hero-aura-system)
-   - 7.10 DRIVEN Faction — Command Radius, Instant Defeat, Magic Resistance
+    - 7.10 DRIVEN Faction — Command Radius, Instant Defeat, Magic Resistance
 8. [Scene Architecture](#8-scene-architecture)
 9. [Development Steps](#9-development-steps)
 10. [Resolved Decisions](#10-resolved-decisions)
@@ -52,49 +52,49 @@ The TBS app provides a `BattleContext` object when launching the battle module.
 
 ```typescript
 export interface BattleArmy {
-  /** Identifier of the controlling player or AI */
-  controlledBy: string;
-  regulars: RegularsState[];
-  heroes: HeroState[];
-  warMachines: WarMachineState[];
+    /** Identifier of the controlling player or AI */
+    controlledBy: string;
+    regulars: RegularsState[];
+    heroes: HeroState[];
+    warMachines: WarMachineState[];
 }
 
 export interface BattleContext {
-  /** Which side the human player controls */
-  playerSide: 'attacker' | 'defender';
-  attacker: BattleArmy;
-  defender: BattleArmy;
-  battlefield: BattlefieldConfig;
+    /** Which side the human player controls */
+    playerSide: 'attacker' | 'defender';
+    attacker: BattleArmy;
+    defender: BattleArmy;
+    battlefield: BattlefieldConfig;
 }
 
 export type TerrainType = 'plains' | 'forest' | 'swamp' | 'mountains' | 'snow';
 
 export interface BattlefieldConfig {
-  type: 'open-field' | 'siege';
-  terrain: TerrainType;
+    type: 'open-field' | 'siege';
+    terrain: TerrainType;
 
-  /**
-   * Zone split as fractions of total battlefield height (must sum to 1.0).
-   * If omitted, defaults to the standard split below.
-   */
-  zones?: {
-    attacker: number;   // default: 0.20
-    neutral:  number;   // default: 0.10
-    defender: number;   // default: 0.70
-  };
+    /**
+     * Zone split as fractions of total battlefield height (must sum to 1.0).
+     * If omitted, defaults to the standard split below.
+     */
+    zones?: {
+        attacker: number;   // default: 0.20
+        neutral: number;   // default: 0.10
+        defender: number;   // default: 0.70
+    };
 
-  /**
-   * Structures present on the battlefield, provided by the TBS layer.
-   * Buildings are constructed during the TBS phase; by default this array is empty.
-   * When structures exist, `type` should be set to `'siege'`.
-   */
-  structures?: StructureConfig[];
+    /**
+     * Structures present on the battlefield, provided by the TBS layer.
+     * Buildings are constructed during the TBS phase; by default this array is empty.
+     * When structures exist, `type` should be set to `'siege'`.
+     */
+    structures?: StructureConfig[];
 }
 
 export interface StructureConfig {
-  type: 'castle-wall' | 'gate' | 'tower' | 'keep' | 'barracks';
-  hp: number;
-  armor: number;
+    type: 'castle-wall' | 'gate' | 'tower' | 'keep' | 'barracks';
+    hp: number;
+    armor: number;
 }
 ```
 
@@ -104,29 +104,30 @@ Returned to TBS when the battle ends (victory, annihilation, retreat, or stalema
 
 ```typescript
 export interface BattleResult {
-  winner: 'attacker' | 'defender';
-  endCondition: 'annihilation' | 'retreat' | 'objective' | 'stalemate';
+    winner: 'attacker' | 'defender';
+    endCondition: 'annihilation' | 'retreat' | 'objective' | 'stalemate';
 
-  /** Full army state of the winning side after battle (survivors + captured war machines) */
-  winnerArmy: BattleArmy;
+    /** Full army state of the winning side after battle (survivors + captured war machines) */
+    winnerArmy: BattleArmy;
 
-  /** Units the winner lost during the battle (counts reduced, dead heroes omitted) */
-  winnerLost: BattleArmy;
+    /** Units the winner lost during the battle (counts reduced, dead heroes omitted) */
+    winnerLost: BattleArmy;
 
-  /** Units the loser lost during the battle */
-  loserLost: BattleArmy;
+    /** Units the loser lost during the battle */
+    loserLost: BattleArmy;
 
-  /**
-   * Buildings destroyed during this battle (from TBS shared `BuildingType`).
-   * Empty if no structures were destroyed.
-   * Note: destroying a Gate does NOT remove the Wall — the wall remains as a structure.
-   * A building in this list will be removed from the strategic map by the TBS layer.
-   */
-  lostBuildings: BuildingType[];
+    /**
+     * Buildings destroyed during this battle (from TBS shared `BuildingType`).
+     * Empty if no structures were destroyed.
+     * Note: destroying a Gate does NOT remove the Wall — the wall remains as a structure.
+     * A building in this list will be removed from the strategic map by the TBS layer.
+     */
+    lostBuildings: BuildingType[];
 }
 ```
 
 **War machine notes:**
+
 - Captured Catapults / Ballistas are included in `winnerArmy.warMachines`.
 - Battering Ram and Siege Tower are **not** returned — they become battlefield scenery.
 - If DRIVEN wins: `winnerArmy.warMachines` is empty — DRIVEN destroys all machines it cannot use.
@@ -146,9 +147,9 @@ Attacker is always at the **top**; defender at the **bottom**.
 │                                                    │   │ 20%  (default)
 │         ATTACKER DEPLOY ZONE                       │   │
 │                                                    │   │
-├── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ┤  ──
+├── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ──  ┤  ──
 │         NEUTRAL ZONE                               │   │ 10%
-├── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ┤  ──
+├── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ──  ┤  ──
 │                                                    │   │
 │         DEFENDER DEPLOY ZONE                       │   │ 70%
 │         (structures placed here for siege)         │   │
@@ -157,6 +158,7 @@ Attacker is always at the **top**; defender at the **bottom**.
 ```
 
 **Camera orientation:**
+
 - If `playerSide === 'attacker'` → player's units are at the top; camera starts there.
 - If `playerSide === 'defender'` → player's units are at the bottom; camera starts there.
 - The battlefield coordinates stay fixed; only the initial camera position and HUD labels adapt.
@@ -169,14 +171,14 @@ splits for special scenarios (e.g., desperate last-stand siege: 10 / 5 / 85).
 
 The RTS procedurally generates the map from `BattlefieldConfig` at scene start:
 
-| Config field | Generated output |
-|---|---|
-| `type: 'siege'` | Castle walls + gate + towers at the neutral/defender boundary |
-| `type: 'open-field'` | Flat terrain with scattered cover objects |
-| `terrain: 'forest'` | Tree clusters in neutral and defender zones |
-| `terrain: 'swamp'` | Mud patches that reduce movement speed |
-| `terrain: 'mountains'` | Impassable rock formations with narrow passes |
-| `terrain: 'snow'` | Cosmetic snow layer; slight movement penalty |
+| Config field           | Generated output                                              |
+|------------------------|---------------------------------------------------------------|
+| `type: 'siege'`        | Castle walls + gate + towers at the neutral/defender boundary |
+| `type: 'open-field'`   | Flat terrain with scattered cover objects                     |
+| `terrain: 'forest'`    | Tree clusters in neutral and defender zones                   |
+| `terrain: 'swamp'`     | Mud patches that reduce movement speed                        |
+| `terrain: 'mountains'` | Impassable rock formations with narrow passes                 |
+| `terrain: 'snow'`      | Cosmetic snow layer; slight movement penalty                  |
 
 Structures (walls, gate, towers, keep) are **destructible objects** with HP and armor —
 not visual decorations. Destroying the **gate** opens a path.
@@ -213,20 +215,20 @@ All entity sizes live in `WORLD_CONFIG` — edit here to tune spacing, no other 
 ```typescript
 // src/game/config/worldConfig.ts
 export const WORLD_CONFIG = {
-  widthMeters:  1000,
-  heightMeters: 1000,
-  metersToPixels: 4,        // 1 m = 4 px; world = 4000 × 4000 px
+    widthMeters: 1000,
+    heightMeters: 1000,
+    metersToPixels: 4,        // 1 m = 4 px; world = 4000 × 4000 px
 
-  // ── Entity sizes (meters) ─────────────────────────────────────────────────
-  packSizeMeters:      30,                    // 30 × 30 m deploy footprint per pack
-  unitSizeMeters:       2,                    // 2 × 2 m individual unit (Battle Phase)
-  warMachineSizeMeters: { w: 5,  h: 10 },    // Catapult / Ballista / Battering Ram
-  siegeTowerSizeMeters: { w: 10, h: 10 },    // Siege Tower
+    // ── Entity sizes (meters) ─────────────────────────────────────────────────
+    packSizeMeters: 30,                    // 30 × 30 m deploy footprint per pack
+    unitSizeMeters: 2,                    // 2 × 2 m individual unit (Battle Phase)
+    warMachineSizeMeters: {w: 5, h: 10},    // Catapult / Ballista / Battering Ram
+    siegeTowerSizeMeters: {w: 10, h: 10},    // Siege Tower
 
-  // ── Battle Phase camera ───────────────────────────────────────────────────
-  defaultViewportMeters: 100,   // default: 100 × 100 m visible
-  minZoomMeters:          30,   // max zoom-in:  30 × 30 m visible
-  maxZoomMeters:         250,   // max zoom-out: 250 × 250 m visible
+    // ── Battle Phase camera ───────────────────────────────────────────────────
+    defaultViewportMeters: 100,   // default: 100 × 100 m visible
+    minZoomMeters: 30,   // max zoom-in:  30 × 30 m visible
+    maxZoomMeters: 250,   // max zoom-out: 250 × 250 m visible
 } as const;
 ```
 
@@ -237,6 +239,7 @@ visible on screen simultaneously. Zoom and pan controls are disabled.
 Phaser sets the camera zoom so the entire world fits inside the Battlefield panel content area.
 
 This serves two purposes:
+
 1. The player sees the full strategic picture and places packs with full context.
 2. Zone boundary frames (React overlays) map directly to proportional canvas heights —
    attacker zone = top 20%, neutral = next 10%, defender = bottom 70%. No world-to-screen
@@ -247,12 +250,12 @@ This serves two purposes:
 On transition to Battle Phase the camera switches to a panning view centred on the player's
 deploy zone. Controls are implemented first and fine-tuned after initial playtest:
 
-| Input | Action |
-|---|---|
-| Middle-mouse drag or right-click drag | Pan |
-| Scroll wheel | Zoom in / out |
-| WASD / arrow keys | Pan |
-| Mouse at screen edge | Edge-scroll pan |
+| Input                                 | Action          |
+|---------------------------------------|-----------------|
+| Middle-mouse drag or right-click drag | Pan             |
+| Scroll wheel                          | Zoom in / out   |
+| WASD / arrow keys                     | Pan             |
+| Mouse at screen edge                  | Edge-scroll pan |
 
 Camera is clamped to world bounds at all times. Zoom range: 30 m (max in) to 250 m (max out).
 
@@ -260,6 +263,7 @@ Camera is clamped to world bounds at all times. Zoom range: 30 m (max in) to 250
 
 A small **minimap** (part of `BattleUIScene` — **Battle Phase only**, not shown during Deploy)
 shows:
+
 - The full 1000 × 1000 m world at reduced scale
 - The current camera viewport rectangle (drag to pan the camera)
 - Unit dots: **player army = blue**, **enemy army = red** (regardless of attacker/defender role)
@@ -273,11 +277,11 @@ shows:
 During **Deploy Phase**, the army is organized into **packs** (slots).
 Packs are the unit of deployment on the battlefield.
 
-| Army unit type | Pack size |
-|---|---|
-| Regular units | Up to **20** units per pack |
-| Hero | **1** hero per pack |
-| War machine | **1** machine per pack |
+| Army unit type | Pack size                   |
+|----------------|-----------------------------|
+| Regular units  | Up to **20** units per pack |
+| Hero           | **1** hero per pack         |
+| War machine    | **1** machine per pack      |
 
 > **War machine count:** `WarMachineState.count` is the total number of machines of that type
 > available in the army. Each machine occupies **1 pack slot**. A player with `count: 3`
@@ -285,9 +289,11 @@ Packs are the unit of deployment on the battlefield.
 > limit are **permanently dropped** (cannot enter as reinforcements).
 
 **Pack calculation for regulars:**
+
 ```
 packs = ceil(count / 20)
 ```
+
 Example: 123 Orc Warriors → `ceil(123 / 20)` = **7 packs** (6 × 20 + 1 × 3)
 
 **Maximum deployed packs per side: 25**
@@ -305,28 +311,29 @@ to a sprite configuration. Unknown types fall back to `'default'`.
 
 ```typescript
 interface UnitSpriteConfig {
-  textureKey: string;
-  frameWidth: number;
-  frameHeight: number;
-  scale?: number;                      // default: 1.0
-  origin?: { x: number; y: number };   // default: { x: 0.5, y: 1.0 }
-  animations: {
-    idle?:    AnimDef;
-    walk:     AnimDef;                 // required
-    attack?:  AnimDef;
-    death?:   AnimDef;
-    ranged?:  AnimDef;
-  };
+    textureKey: string;
+    frameWidth: number;
+    frameHeight: number;
+    scale?: number;                      // default: 1.0
+    origin?: { x: number; y: number };   // default: { x: 0.5, y: 1.0 }
+    animations: {
+        idle?: AnimDef;
+        walk: AnimDef;                 // required
+        attack?: AnimDef;
+        death?: AnimDef;
+        ranged?: AnimDef;
+    };
 }
 
 interface AnimDef {
-  frames: number[];
-  frameRate: number;
-  repeat: number;   // -1 = loop
+    frames: number[];
+    frameRate: number;
+    repeat: number;   // -1 = loop
 }
 ```
 
 **Adding a new unit sprite:**
+
 1. Drop animation frames into `/sprites/<unit-type>/`
 2. Register one `UnitSpriteConfig` entry in `UnitSpriteRegistry`
 3. Done — all game code resolves sprites through the registry automatically
@@ -336,22 +343,22 @@ interface AnimDef {
 For Step 1 (Foundation) and Step 2 (Deploy Phase), real sprites are not required.
 All entities are rendered as **coloured rectangles**:
 
-| Unit / category | Rectangle colour | Notes |
-|---|---|---|
-| Warrior | Steel grey | |
-| Orc | Green | |
-| Dwarf | Dark orange | |
-| Ward-hands | Light blue | |
-| Halfling | Light brown | |
-| Elf | Pale green | |
-| Dark-Elf | Dark purple | |
-| Golem | Dark grey | DRIVEN |
-| Gargoyle | Slate blue | DRIVEN |
-| Dendrite | Dark green | DRIVEN |
-| Undead | Pale yellow | |
-| Hero (any) | Gold | Slightly larger rectangle |
-| War machine | Dark red | Larger rectangle (≈ 2× regular size) |
-| Structure (wall / gate / tower) | Stone grey | Solid colour rectangle in Phase 1 |
+| Unit / category                 | Rectangle colour | Notes                                |
+|---------------------------------|------------------|--------------------------------------|
+| Warrior                         | Steel grey       |                                      |
+| Orc                             | Green            |                                      |
+| Dwarf                           | Dark orange      |                                      |
+| Ward-hands                      | Light blue       |                                      |
+| Halfling                        | Light brown      |                                      |
+| Elf                             | Pale green       |                                      |
+| Dark-Elf                        | Dark purple      |                                      |
+| Golem                           | Dark grey        | DRIVEN                               |
+| Gargoyle                        | Slate blue       | DRIVEN                               |
+| Dendrite                        | Dark green       | DRIVEN                               |
+| Undead                          | Pale yellow      |                                      |
+| Hero (any)                      | Gold             | Slightly larger rectangle            |
+| War machine                     | Dark red         | Larger rectangle (≈ 2× regular size) |
+| Structure (wall / gate / tower) | Stone grey       | Solid colour rectangle in Phase 1    |
 
 **Battlefield background (all phases from Step 1):** the main Phaser scene background is
 `CelticBackground.png` (`sprites/border/CelticBackground.png`), tiled across the full
@@ -395,15 +402,15 @@ rectangle whenever `textureKey` is not yet loaded.
 2. Zone boundaries are drawn with celtic-style borders (see Zone Visuals below).
 3. Player's **Army Panel** (left side) lists all packs grouped by unit type with counts.
 4. Player **clicks a pack row** in the army panel → enters placement mode:
-   - A **ghost rectangle** (unit colour darkened) follows the cursor on the Phaser canvas.
-   - Cursor over **valid position in own deploy zone**: ghost shown normally.
-   - Cursor over **invalid position** (wrong zone, overlap with existing pack): ghost tinted **red**.
-   - **Left-click** on a valid position → pack is placed; ghost disappears.
-   - **Right-click** or clicking a different pack row in the panel → cancels placement mode.
+    - A **ghost rectangle** (unit colour darkened) follows the cursor on the Phaser canvas.
+    - Cursor over **valid position in own deploy zone**: ghost shown normally.
+    - Cursor over **invalid position** (wrong zone, overlap with existing pack): ghost tinted **red**.
+    - **Left-click** on a valid position → pack is placed; ghost disappears.
+    - **Right-click** or clicking a different pack row in the panel → cancels placement mode.
 5. Placed pack shows as a coloured rectangle (Phase 1) with a **count badge** (e.g. "×20").
 6. Clicking a placed pack (on canvas) **or** its row in the army panel:
-   - Shows a **pack info panel** (unit type, rank, count, combat stats summary).
-   - Offers a **Remove** action to unplace the pack (returns it to the army panel list).
+    - Shows a **pack info panel** (unit type, rank, count, combat stats summary).
+    - Offers a **Remove** action to unplace the pack (returns it to the army panel list).
 7. **No overlap** — two packs cannot occupy the same position. Pack footprint = 30 × 30 m.
    A pack's ghost turns red if it would overlap an already-placed pack.
 8. **War machine placement** triggers the crew loading dialog (§5.2).
@@ -428,9 +435,9 @@ Zone boundaries use the **celtic-style border assets** from the TBS application.
   are transparent — the stone texture shows through. Darkening is applied via CSS filter.
 - **Borders:** each zone gets its own `FantasyBorderFrame` (attacker, neutral, defender).
 - **Shadowing rules:**
-  - Player is **attacker** → defender zone (bottom 70%) darkened; neutral zone darkened.
-  - Player is **defender** → attacker zone (top 20%) darkened; neutral zone darkened.
-  - Player's **own deploy zone** is fully lit and clear.
+    - Player is **attacker** → defender zone (bottom 70%) darkened; neutral zone darkened.
+    - Player is **defender** → attacker zone (top 20%) darkened; neutral zone darkened.
+    - Player's **own deploy zone** is fully lit and clear.
 - **Labels:** "ATTACKER ZONE", "NEUTRAL", "DEFENDER ZONE" inside each frame's content area.
 - **During battle:** all zone overlay frames are unmounted; full battlefield equally lit.
 
@@ -441,15 +448,15 @@ The army panel is a `<FantasyBorderFrame>` docked to the **left** side of the sc
 
 ```tsx
 <FantasyBorderFrame
-  screenPosition={{ x: 0, y: 0 }}
-  frameSize={{ width: 240, height: windowHeight }}
-  accessible={true}        // no backdrop — the Phaser canvas remains interactive
-  flexibleSizing={false}   // fixed height to fill the viewport
-  primaryButton={<ReadyForBattleButton />}
-  secondaryButton={<RetreatButton />}
+    screenPosition={{x: 0, y: 0}}
+    frameSize={{width: 240, height: windowHeight}}
+    accessible={true}        // no backdrop — the Phaser canvas remains interactive
+    flexibleSizing={false}   // fixed height to fill the viewport
+    primaryButton={<ReadyForBattleButton/>}
+    secondaryButton={<RetreatButton/>}
 >
-  {/* pack list grouped by unit type; each row shows unit name, rank badge, count */}
-  {/* selected pack row is highlighted; pack info panel shown beneath it */}
+    {/* pack list grouped by unit type; each row shows unit name, rank badge, count */}
+    {/* selected pack row is highlighted; pack info panel shown beneath it */}
 </FantasyBorderFrame>
 ```
 
@@ -471,12 +478,12 @@ Escape or clicking outside cancels the dialog without loading the machine:
 
 ```tsx
 <PopupWrapper
-  screenPosition={{ x: centreX, y: centreY }}
-  dimensions={{ width: 400, height: 300 }}
-  accessible={false}     // blocking: canvas interaction disabled until resolved
-  onClose={handleCancel}
+    screenPosition={{x: centreX, y: centreY}}
+    dimensions={{width: 400, height: 300}}
+    accessible={false}     // blocking: canvas interaction disabled until resolved
+    onClose={handleCancel}
 >
-  {/* required crew type label, eligible melee pack list, Confirm / Cancel buttons */}
+    {/* required crew type label, eligible melee pack list, Confirm / Cancel buttons */}
 </PopupWrapper>
 ```
 
@@ -486,8 +493,8 @@ When the player attempts to place a pack in an invalid position (wrong zone, ove
 
 ```tsx
 <ErrorMessagePopup
-  screenPosition={{ x: cursorX, y: cursorY }}
-  textMessage="Cannot place here — position is outside your deploy zone."
+    screenPosition={{x: cursorX, y: cursorY}}
+    textMessage="Cannot place here — position is outside your deploy zone."
 />
 ```
 
@@ -496,17 +503,18 @@ The popup appears near the cursor and closes automatically on click-outside or E
 ### 5.2 War Machine Loading
 
 When a war machine pack is placed on the field:
+
 - A dialog appears listing the required crew unit type and count
 - The player selects one pack of **melee regular units** from the army panel to crew it
 - Only melee unit types may crew a war machine — ranged units (Elf, Dark-Elf) cannot
 - Exactly **one pack** may be associated with one war machine; partial packs are accepted
 - That many regular units are consumed from the selected pack in the army panel
 - The machine's combat stats are **derived entirely from the crew's `CombatStats`**:
-  - `baseDamage   = crew.combatStats.attack × crewCount × machineAttackMultiplier`
-  - `baseMoveSpeed = crew.combatStats.moveSpeed × machineMoveMultiplier`
-  - `baseFireRate  = crew.combatStats.attackSpeed × machineFireRateMultiplier`
-  - Multipliers are defined per machine type in `BATTLE_CONFIG.warMachine[type]`
-  - Better crew (Veteran/Elite) produces stronger, faster, more accurate machines
+    - `baseDamage   = crew.combatStats.attack × crewCount × machineAttackMultiplier`
+    - `baseMoveSpeed = crew.combatStats.moveSpeed × machineMoveMultiplier`
+    - `baseFireRate  = crew.combatStats.attackSpeed × machineFireRateMultiplier`
+    - Multipliers are defined per machine type in `BATTLE_CONFIG.warMachine[type]`
+    - Better crew (Veteran/Elite) produces stronger, faster, more accurate machines
 - If no eligible melee crew pack exists, placement is blocked with a clear error
 
 > **During battle:** a player may also direct a melee unit pack to move to an unoccupied
@@ -531,6 +539,7 @@ terrain type and army composition. For the initial implementation, a single **de
 is used:
 
 **Default schema — standard army (non-DRIVEN):**
+
 ```
 ROW 1 (front)   — melee regular units (Warrior, Orc, Dwarf, Ward-hands)
 ROW 2           — melee heroes (Fighter, Hammer-lord, Ogr, Cleric)
@@ -540,6 +549,7 @@ WAR MACHINES    — placed in the middle of the melee row (flanked by melee unit
 ```
 
 **Default schema — DRIVEN army:**
+
 ```
 ROW 1 (front)   — Golems (heavy melee, wall-busters)
 ROW 2           — Dendrites (reach attack)
@@ -568,12 +578,12 @@ At battle start, every deployed pack **expands** into individual unit sprites:
 
 ### 6.2 Battle Entities
 
-| Entity class | Source | Visual |
-|---|---|---|
-| `RegularUnit` | `RegularsState` pack | Sprite; HP shown on hover/selection |
-| `HeroUnit` | `HeroState` | Sprite + **name label** + **HP bar** (always visible) + **aura ring** |
-| `WarMachineUnit` | `WarMachineState` | Large sprite + HP bar + crew count badge |
-| `Structure` | `StructureConfig` | Static sprite with HP bar (siege only) |
+| Entity class     | Source               | Visual                                                                |
+|------------------|----------------------|-----------------------------------------------------------------------|
+| `RegularUnit`    | `RegularsState` pack | Sprite; HP shown on hover/selection                                   |
+| `HeroUnit`       | `HeroState`          | Sprite + **name label** + **HP bar** (always visible) + **aura ring** |
+| `WarMachineUnit` | `WarMachineState`    | Large sprite + HP bar + crew count badge                              |
+| `Structure`      | `StructureConfig`    | Static sprite with HP bar (siege only)                                |
 
 ### 6.3 Unit AI — State Machine
 
@@ -595,6 +605,7 @@ IDLE ─────────────────────────
 ```
 
 War machines have an additional transition:
+
 ```
 IDLE / ENGAGING ──> ABANDONED (owner retreat)
 ABANDONED ──> CAPTURED (enemy unit reaches it, no friendly crew nearby)
@@ -602,12 +613,12 @@ ABANDONED ──> CAPTURED (enemy unit reaches it, no friendly crew nearby)
 
 **State behaviors by unit type:**
 
-| State | Melee regular | Ranged regular | Hero | War machine |
-|---|---|---|---|---|
-| **IDLE** | Scan nearby | Scan nearby | Wider scan radius | Stationary, scan |
-| **MOVING** | Charge target | Advance to optimal range, then hold | Charge | Tow slowly |
-| **ENGAGING** | Melee nearest | Fire projectile; kite backwards if melee closes | High-damage melee | Fire area attack |
-| **RETREATING** | Run to own border | Run to own border | Run (high flee threshold) | Abandoned in place |
+| State          | Melee regular     | Ranged regular                                  | Hero                      | War machine        |
+|----------------|-------------------|-------------------------------------------------|---------------------------|--------------------|
+| **IDLE**       | Scan nearby       | Scan nearby                                     | Wider scan radius         | Stationary, scan   |
+| **MOVING**     | Charge target     | Advance to optimal range, then hold             | Charge                    | Tow slowly         |
+| **ENGAGING**   | Melee nearest     | Fire projectile; kite backwards if melee closes | High-damage melee         | Fire area attack   |
+| **RETREATING** | Run to own border | Run to own border                               | Run (high flee threshold) | Abandoned in place |
 
 ### 6.4 Target Priority
 
@@ -623,32 +634,36 @@ Player commands always take precedence. Full order (highest to lowest):
 
 #### Attack Types
 
-| Type | Who uses it | Facing | Blocked by units | Blocked by terrain | Targets |
-|---|---|---|---|---|---|
-| **melee** | Regular units | Required (front) | Yes | Yes | 1 unit in contact |
-| **hero-arc** | Fighter, Hammerlord, Ogr, Warsmith, Cleric | Required (front arc) | No — weapon reach | No — weapon reach | Up to 3 in forward arc, at buffer range |
-| **ranged** | Elf, Dark-Elf, Halfling, Ranger hero | No | Yes | Yes | 1 chosen target |
-| **reach** | Dendrite, Druid hero | No — 360° | No | No | 1 chosen target; damage falloff |
-| **fireball** | Pyromancer hero | No | No | No | All units in blast radius (friendly + enemy) |
-| **death-bolt** | Necromancer hero | No | No | No | Up to 3 units in a line |
-| **vortex** | Enchanter hero | Required (forward) | No | No | 5 fixed zones: 3 forward + 1 left + 1 right |
-| **area** | Catapult | No | No | No | All units in splash radius at impact |
-| **piercing** | Ballista | No | No | No | All units in a line (no cap) |
+| Type           | Who uses it                                | Facing               | Blocked by units  | Blocked by terrain | Targets                                      |
+|----------------|--------------------------------------------|----------------------|-------------------|--------------------|----------------------------------------------|
+| **melee**      | Regular units                              | Required (front)     | Yes               | Yes                | 1 unit in contact                            |
+| **hero-arc**   | Fighter, Hammerlord, Ogr, Warsmith, Cleric | Required (front arc) | No — weapon reach | No — weapon reach  | Up to 3 in forward arc, at buffer range      |
+| **ranged**     | Elf, Dark-Elf, Halfling, Ranger hero       | No                   | Yes               | Yes                | 1 chosen target                              |
+| **reach**      | Dendrite, Druid hero                       | No — 360°            | No                | No                 | 1 chosen target; damage falloff              |
+| **fireball**   | Pyromancer hero                            | No                   | No                | No                 | All units in blast radius (friendly + enemy) |
+| **death-bolt** | Necromancer hero                           | No                   | No                | No                 | Up to 3 units in a line                      |
+| **vortex**     | Enchanter hero                             | Required (forward)   | No                | No                 | 5 fixed zones: 3 forward + 1 left + 1 right  |
+| **area**       | Catapult                                   | No                   | No                | No                 | All units in splash radius at impact         |
+| **piercing**   | Ballista                                   | No                   | No                | No                 | All units in a line (no cap)                 |
 
 #### Damage Formula
 
 **Melee / Reach:**
+
 ```
 damage = max(1, attacker.attack + morale_bonus − defender.armor)
 ```
+
 Both sides deal damage simultaneously on clash.
 
 **Reach falloff:**
+
 ```
 damage = max(1, baseDamage × (1 − distance / maxReachRadius) − defender.armor)
 ```
 
 **Ranged:**
+
 - Unit stops at optimal range, fires projectile (arc or straight depending on type)
 - If melee enemy enters `flee_range` → kite backward while continuing to fire
 - Accuracy stat determines miss chance via **angular deviation + hit probability**:
@@ -656,9 +671,11 @@ damage = max(1, baseDamage × (1 − distance / maxReachRadius) − defender.arm
   and additionally has a flat probability to miss entirely. Exact formula TBD in Step 5.
 
 **Area (war machine catapult-type):**
+
 - Arc projectile → splash damage within radius to all units at impact zone
 
 **Piercing (war machine ballista-type):**
+
 - Straight bolt → hits all units in a line from source to max range
 
 ### 6.6 Morale
@@ -666,19 +683,21 @@ damage = max(1, baseDamage × (1 − distance / maxReachRadius) − defender.arm
 Every unit has a **morale** value (0–100).
 Starting morale is based on rank:
 
-| Rank | Starting morale |
-|---|---|
-| Regular | 50 |
-| Veteran | 65 |
-| Elite | 80 |
+| Rank    | Starting morale |
+|---------|-----------------|
+| Regular | 50              |
+| Veteran | 65              |
+| Elite   | 80              |
 
 **Morale modifiers (continuous):**
+
 - In range of a friendly non-magic hero's aura: **+morale/s**
 - In range of enemy Necromancer's aura: **−morale/s**
 - Nearby friendly unit death: **−5** (one-time)
 - Nearby hero death: **−20** immediately + **−5/s** debuff for 30 s (§7.3)
 
 **Morale effects:**
+
 ```
 attack bonus  = (morale − 50) * 0.2   // −10 to +10 at extremes
 flee_threshold HP% = 30% − (morale − 50) * 0.2   // low morale = flee at higher HP
@@ -686,22 +705,24 @@ flee_threshold HP% = 30% − (morale − 50) * 0.2   // low morale = flee at hig
 
 ### 6.7 Victory Conditions
 
-| Condition | Winner | `endCondition` |
-|---|---|---|
-| All opponent units dead | Remaining side | `'annihilation'` |
-| One side retreats (player command) | Opposing side | `'retreat'` |
-| Stalemate detected (§3.3) | Defender | `'stalemate'` |
+| Condition                          | Winner         | `endCondition`   |
+|------------------------------------|----------------|------------------|
+| All opponent units dead            | Remaining side | `'annihilation'` |
+| One side retreats (player command) | Opposing side  | `'retreat'`      |
+| Stalemate detected (§3.3)          | Defender       | `'stalemate'`    |
 
 ### 6.8 Reinforcements
 
 **Trigger:** A pack currently on the field reaches **0 survivors**.
 
 **Entry point:**
+
 - Attacker reinforcements: enter from the **top edge** of the battlefield
 - Defender reinforcements: enter from the **centre of the defender zone** (the fortified
   spawn area visualised as a castle/keep at the rear of the defender's territory)
 
 **Queue resolution (in order):**
+
 1. If **regular unit packs** remain in the queue → the next regular pack enters
 2. If only **heroes** remain in the queue → the next hero enters (as a 1-unit pack)
 3. If the queue is **empty** → no reinforcement spawns for this trigger
@@ -756,13 +777,13 @@ War machines have two distinct HP pools that activate sequentially:
 
 As crew HP decreases, all machine outputs scale proportionally:
 
-| Crew HP % | Damage output | Move speed | Fire rate |
-|---|---|---|---|
-| 100% | 100% | 100% | 100% |
-| 75% | 75% | 75% | 75% |
-| 50% | 50% | 50% | 50% |
-| 25% | 25% | 25% | 25% |
-| 0% (Phase 2) | 0% — unoccupied | 0% — stationary | — |
+| Crew HP %    | Damage output   | Move speed      | Fire rate |
+|--------------|-----------------|-----------------|-----------|
+| 100%         | 100%            | 100%            | 100%      |
+| 75%          | 75%             | 75%             | 75%       |
+| 50%          | 50%             | 50%             | 50%       |
+| 25%          | 25%             | 25%             | 25%       |
+| 0% (Phase 2) | 0% — unoccupied | 0% — stationary | —         |
 
 All three scale identically via `effectiveness`. There is no threshold — degradation is continuous.
 
@@ -784,6 +805,7 @@ Battering Ram and Siege Tower become landscape features and cannot be captured o
 5. DRIVEN units **cannot** capture or operate war machines under any circumstances
 
 **Post-battle auto-capture** (applied to battle result after combat ends):
+
 - If **defender wins**: all surviving Catapults and Ballistas on the field transfer to the defender
 - If **DRIVEN army wins**: all war machines on the field are **destroyed**
   (DRIVEN will not keep equipment they cannot use)
@@ -794,25 +816,25 @@ Opponent then applies the capture rules above.
 
 #### 6.10.4 State Transitions Summary
 
-| Machine | Capturable during battle? | Post-battle (defender wins) | Post-battle (DRIVEN wins) |
-|---|---|---|---|
-| **Ballista** | ✅ correct crew type only | → Defender | Destroyed |
-| **Catapult** | ✅ correct crew type only | → Defender | Destroyed |
-| **Battering Ram** | ❌ becomes landscape | N/A (landscape) | N/A (landscape) |
-| **Siege Tower** | ❌ becomes indestructible bridge | N/A (landscape) | N/A (landscape) |
+| Machine           | Capturable during battle?       | Post-battle (defender wins) | Post-battle (DRIVEN wins) |
+|-------------------|---------------------------------|-----------------------------|---------------------------|
+| **Ballista**      | ✅ correct crew type only        | → Defender                  | Destroyed                 |
+| **Catapult**      | ✅ correct crew type only        | → Defender                  | Destroyed                 |
+| **Battering Ram** | ❌ becomes landscape             | N/A (landscape)             | N/A (landscape)           |
+| **Siege Tower**   | ❌ becomes indestructible bridge | N/A (landscape)             | N/A (landscape)           |
 
 **Events during battle:**
 
-| Event | Trigger | Result |
-|---|---|---|
-| **Crew wiped** | Crew HP → 0 (Ballista / Catapult) | Phase 2 — UNOCCUPIED; can be captured |
-| **Wrong crew captures** | Wrong unit type reaches unoccupied machine | Machine **destroyed** |
-| **Captured** | Correct crew type reaches unoccupied Catapult or Ballista | Machine switches sides |
-| **Destroyed** | Structure HP → 0 | Explosion; removed from field |
-| **Abandoned** | Owner retreats | Crew flees; machine becomes unoccupied in place |
-| **Ram anchors** | Battering Ram breaks the gate | Crew unmounts as infantry; Ram becomes landscape |
-| **Tower anchors** | Siege Tower contacts wall | Crew unmounts at wall top; Tower becomes permanent bridge |
-| **Tower/Ram crew killed in transit** | Crew HP → 0 before reaching objective | Crew dead; machine halts as landscape obstacle |
+| Event                                | Trigger                                                   | Result                                                    |
+|--------------------------------------|-----------------------------------------------------------|-----------------------------------------------------------|
+| **Crew wiped**                       | Crew HP → 0 (Ballista / Catapult)                         | Phase 2 — UNOCCUPIED; can be captured                     |
+| **Wrong crew captures**              | Wrong unit type reaches unoccupied machine                | Machine **destroyed**                                     |
+| **Captured**                         | Correct crew type reaches unoccupied Catapult or Ballista | Machine switches sides                                    |
+| **Destroyed**                        | Structure HP → 0                                          | Explosion; removed from field                             |
+| **Abandoned**                        | Owner retreats                                            | Crew flees; machine becomes unoccupied in place           |
+| **Ram anchors**                      | Battering Ram breaks the gate                             | Crew unmounts as infantry; Ram becomes landscape          |
+| **Tower anchors**                    | Siege Tower contacts wall                                 | Crew unmounts at wall top; Tower becomes permanent bridge |
+| **Tower/Ram crew killed in transit** | Crew HP → 0 before reaching objective                     | Crew dead; machine halts as landscape obstacle            |
 
 `WarMachineState.durability` decrements by 1 for each Ballista/Catapult that survives a battle.
 Battering Ram and Siege Tower do not return in `BattleResult` (they become battlefield scenery).
@@ -848,6 +870,7 @@ Gate breaks:
 ```
 
 If the crew is killed *before* reaching the gate (crew HP → 0 in transit):
+
 - No one to unmount — crew is dead
 - Ram halts in place as landscape (blocks movement, serves no further purpose)
 
@@ -859,8 +882,8 @@ If the crew is killed *before* reaching the gate (crew HP → 0 in transit):
 - **Damage target:** Units only — deals 0 damage to walls, gates, structures
 - **Attack pattern:** `piercing` bolt — hits up to 3 units in a line
 - **Wall penetration:** Can target and hit units **behind castle walls**
-  - Accuracy penalty: `−BATTLE_CONFIG.warMachine.ballista.wallPenaltyAccuracy`
-  - Damage penalty: `−BATTLE_CONFIG.warMachine.ballista.wallPenaltyDamage`
+    - Accuracy penalty: `−BATTLE_CONFIG.warMachine.ballista.wallPenaltyAccuracy`
+    - Damage penalty: `−BATTLE_CONFIG.warMachine.ballista.wallPenaltyDamage`
 - **Optimal targets:** Enemy heroes, war machine crew, densely packed unit lines
 - **Crew:** Warrior / Dwarf (melee — steady precision operators; see §11 crew table)
 - **Effectiveness:** Damage and fire rate scale with crew HP
@@ -871,10 +894,10 @@ If the crew is killed *before* reaching the gate (crew HP → 0 in transit):
 
 - **Purpose:** Siege weapon primarily for destroying walls and structures.
 - **Damage target:** Structures preferred; units with low accuracy
-  - vs. structures: full damage, reliable
-  - vs. units: heavy inaccuracy; projectile lands in approximate area
-    (`scatter = BATTLE_CONFIG.warMachine.catapult.unitTargetScatter` px radius from aim point)
-  - Units inside the scatter radius take splash damage even on a "miss" vs. a specific unit
+    - vs. structures: full damage, reliable
+    - vs. units: heavy inaccuracy; projectile lands in approximate area
+      (`scatter = BATTLE_CONFIG.warMachine.catapult.unitTargetScatter` px radius from aim point)
+    - Units inside the scatter radius take splash damage even on a "miss" vs. a specific unit
 - **Attack pattern:** `area` — arc projectile + splash on impact
 - **Friendly fire:** Yes — splash radius hits all units regardless of faction
 - **Crew:** Warriors or Dwarfs (heavy labour)
@@ -918,6 +941,7 @@ Tower makes contact with wall → ANCHORS:
 ```
 
 **Key rules after anchoring:**
+
 - The bridge is permanent and usable by **both sides** — like a broken gate or breached wall,
   it becomes an open passage that either army can move through
 - Any unit of either faction can use the bridge to reach the wall top —
@@ -926,6 +950,7 @@ Tower makes contact with wall → ANCHORS:
 - Tower cannot be destroyed or captured once anchored — permanent landscape
 
 If the crew is killed *before* reaching the wall (crew HP → 0 in transit):
+
 - Tower halts, no one to steer it — becomes an inert obstacle in the field
 - Cannot anchor on its own; battle continues without the bridge
 
@@ -967,21 +992,24 @@ is a **Reach Attack** — a new attack type distinct from melee, ranged, and are
 
 **Properties:**
 
-| Property | Value |
-|---|---|
-| Facing required | None — 360° target selection |
-| Blocked by other units | No — roots go under/around |
-| Blocked by terrain/walls | No — roots go underground |
-| Hits all units in radius | No — one chosen target per attack |
-| Visual | Brief tendril extension to target; no projectile object |
+| Property                 | Value                                                   |
+|--------------------------|---------------------------------------------------------|
+| Facing required          | None — 360° target selection                            |
+| Blocked by other units   | No — roots go under/around                              |
+| Blocked by terrain/walls | No — roots go underground                               |
+| Hits all units in radius | No — one chosen target per attack                       |
+| Visual                   | Brief tendril extension to target; no projectile object |
 
 **Damage falloff:**
+
 ```
 damage = baseDamage × (1 − distance / maxReachRadius)
 ```
+
 Full damage at contact. Approaches zero at the edge of reach. Minimum 1 if in range.
 
 **Target selection:**
+
 - AI: prefers high-value targets just outside the front melee line
   (enemy heroes, ranged units, war machine crew standing behind the main pack)
 - Player: can manually assign any visible unit within reach radius as the target
@@ -1020,12 +1048,14 @@ reach the hero. This gives them a survivability edge and enables **hit-and-run**
 ```
 
 **Properties:**
+
 - `weaponReach`: distance ahead of the hero where attacks land (~1.5× regular melee range)
 - `arcTargets`: max targets hit simultaneously (up to 3 in forward arc)
 - `arcAngle`: forward cone angle (≈120°)
 - Both sides do NOT deal damage simultaneously — hero attacks first (they keep enemies at arm's length)
 
 **Hit-and-run pattern:**
+
 1. Hero engages — attacks 3 enemies in arc at buffer distance
 2. When surrounded on too many sides (configurable threshold), transitions to `MOVING`
 3. Hero runs in the direction with fewest enemies — enemies follow
@@ -1052,10 +1082,10 @@ Enemies must push INTO the hero's weapon zone to deal damage (they get hit while
   AI targeting prefers the densest cluster of enemy units to maximise hits
 - Player-controlled: player is responsible for friendly fire consequences
 - **Structure damage:**
-  - Wooden structures (gate, wooden doors): `fireballDamage × woodStructureMultiplier`
-  - Stone structures (walls, towers, keep): `fireballDamage × stoneStructureMultiplier`
-  - Default multipliers in `BATTLE_CONFIG.heroAttack.pyromancer`:
-    `woodStructureMultiplier: 1.5`, `stoneStructureMultiplier: 0.3`
+    - Wooden structures (gate, wooden doors): `fireballDamage × woodStructureMultiplier`
+    - Stone structures (walls, towers, keep): `fireballDamage × stoneStructureMultiplier`
+    - Default multipliers in `BATTLE_CONFIG.heroAttack.pyromancer`:
+      `woodStructureMultiplier: 1.5`, `stoneStructureMultiplier: 0.3`
 
 ---
 
@@ -1135,13 +1165,13 @@ A level-5 hero has a radius of 180 px.
 
 #### Non-Mage Heroes
 
-| Hero | Aura | Effect | Target | Ring colour |
-|---|---|---|---|---|
-| **Fighter** | **Battle Cry** | +morale/s, +attack% | Friendly | Golden / amber |
-| **Hammer-lord** | **Iron Resolve** | +armor, +damage vs. structures | Friendly (melee) | Steel grey |
-| **Ranger** | **Eagle Eye** | +accuracy, +effective range | Friendly **ranged only** | Forest green |
-| **Shadowblade** | **Shadow Veil** | Enemy aggro radius −30%; friendly move speed +15% | Friendly | Dark purple |
-| **Ogr** | **Terror** | −morale/s; enemy flee threshold raised | **Enemy** | Dark red |
+| Hero            | Aura             | Effect                                            | Target                   | Ring colour    |
+|-----------------|------------------|---------------------------------------------------|--------------------------|----------------|
+| **Fighter**     | **Battle Cry**   | +morale/s, +attack%                               | Friendly                 | Golden / amber |
+| **Hammer-lord** | **Iron Resolve** | +armor, +damage vs. structures                    | Friendly (melee)         | Steel grey     |
+| **Ranger**      | **Eagle Eye**    | +accuracy, +effective range                       | Friendly **ranged only** | Forest green   |
+| **Shadowblade** | **Shadow Veil**  | Enemy aggro radius −30%; friendly move speed +15% | Friendly                 | Dark purple    |
+| **Ogr**         | **Terror**       | −morale/s; enemy flee threshold raised            | **Enemy**                | Dark red       |
 
 > **Ogr + Orc interaction:** Orc units are **immune** to the Terror aura — they do not
 > respect fear, not even from an Ogr. Additionally, Orcs have the **Bloodlust** passive
@@ -1150,13 +1180,13 @@ A level-5 hero has a radius of 180 px.
 
 #### Mage Heroes
 
-| Hero | Aura | Effect | Target | Ring colour |
-|---|---|---|---|---|
-| **Cleric** | **Divine Blessing** | HP regeneration/s (strongest); + continuous Holy Damage to all Undead in radius (enemy and friendly) | Friendly (regen) + All Undead (damage) | Soft blue / white |
-| **Druid** | **Nature's Ward** | HP regen/s (weaker than Cleric) + enemy move speed −20% | Friendly (regen) + Enemy (slow) | Leaf green |
-| **Enchanter** | **Arcane Empowerment** | +attack, +armor, +move speed (small all-stat buff) | Friendly | Cyan / arcane blue |
-| **Pyromancer** | **Infernal Aura** | Periodic fire damage (tick) | **Enemy** | Orange / ember |
-| **Necromancer** | **Death's Embrace** | −attack% curse; units that die inside radius have a chance to **rise as Undead** | Enemy (curse) + on-death | Sickly purple / green |
+| Hero            | Aura                   | Effect                                                                                               | Target                                 | Ring colour           |
+|-----------------|------------------------|------------------------------------------------------------------------------------------------------|----------------------------------------|-----------------------|
+| **Cleric**      | **Divine Blessing**    | HP regeneration/s (strongest); + continuous Holy Damage to all Undead in radius (enemy and friendly) | Friendly (regen) + All Undead (damage) | Soft blue / white     |
+| **Druid**       | **Nature's Ward**      | HP regen/s (weaker than Cleric) + enemy move speed −20%                                              | Friendly (regen) + Enemy (slow)        | Leaf green            |
+| **Enchanter**   | **Arcane Empowerment** | +attack, +armor, +move speed (small all-stat buff)                                                   | Friendly                               | Cyan / arcane blue    |
+| **Pyromancer**  | **Infernal Aura**      | Periodic fire damage (tick)                                                                          | **Enemy**                              | Orange / ember        |
+| **Necromancer** | **Death's Embrace**    | −attack% curse; units that die inside radius have a chance to **rise as Undead**                     | Enemy (curse) + on-death               | Sickly purple / green |
 
 #### Non-Magic Hero — DRIVEN Doctrine (rejects magic entirely)
 
@@ -1164,19 +1194,19 @@ The Warsmith belongs to the **DRIVEN** faction and follows completely different 
 **Warsmith has no aura.** Instead, it projects a **Command Radius** (see §7.10).
 War machines, morale, and magic effects do not apply to DRIVEN units at all.
 
-| Hero | Mechanic | Effect | Ring colour |
-|---|---|---|---|
+| Hero         | Mechanic           | Effect                                                | Ring colour                |
+|--------------|--------------------|-------------------------------------------------------|----------------------------|
 | **Warsmith** | **Command Radius** | DRIVEN units inside radius can act; outside = DORMANT | Copper / mechanical orange |
 
 ### 7.3 Aura Stacking Rules
 
-| Scenario | Rule |
-|---|---|
-| Two heroes of the **same aura type** | No stack — highest value wins |
-| Two heroes of **different aura types** on the same target | Additive — both apply |
-| Friendly and enemy aura on the same unit | Both apply simultaneously (e.g., Cleric heals a unit while Necromancer curses its attack) |
-| Any aura targeting a **DRIVEN unit** | Ignored — DRIVEN units are fully immune to all auras, friendly and enemy |
-| **Warsmith** Command Radius | Not an aura — separate mechanic (§7.10); cannot stack or conflict with auras |
+| Scenario                                                  | Rule                                                                                      |
+|-----------------------------------------------------------|-------------------------------------------------------------------------------------------|
+| Two heroes of the **same aura type**                      | No stack — highest value wins                                                             |
+| Two heroes of **different aura types** on the same target | Additive — both apply                                                                     |
+| Friendly and enemy aura on the same unit                  | Both apply simultaneously (e.g., Cleric heals a unit while Necromancer curses its attack) |
+| Any aura targeting a **DRIVEN unit**                      | Ignored — DRIVEN units are fully immune to all auras, friendly and enemy                  |
+| **Warsmith** Command Radius                               | Not an aura — separate mechanic (§7.10); cannot stack or conflict with auras              |
 
 **Warsmith magic resistance:** Warsmith heroes are not immune to magic, but they
 resist it proportionally to their level (see §7.10 for formula). Other hero types have no
@@ -1217,153 +1247,153 @@ parameters — no magic numbers elsewhere in the codebase.
 // src/game/config/battleConfig.ts
 export const BATTLE_CONFIG = {
 
-  // ── Aura system ──────────────────────────────────────────────────────────
-  aura: {
-    baseRadius: 80,           // px, all heroes
-    radiusPerLevel: 20,       // px per hero level
+    // ── Aura system ──────────────────────────────────────────────────────────
+    aura: {
+        baseRadius: 80,           // px, all heroes
+        radiusPerLevel: 20,       // px per hero level
 
-    fighter: {
-      moralePerSec: 2,
-      attackBonus: 0.05,      // fraction
+        fighter: {
+            moralePerSec: 2,
+            attackBonus: 0.05,      // fraction
+        },
+        hammerLord: {
+            armorBonus: 5,
+            structureDamageBonus: 0.30,
+        },
+        ranger: {
+            accuracyBonus: 0.20,
+            rangeBonus: 50,         // px
+        },
+        shadowblade: {
+            aggroRadiusReduction: 0.30,
+            moveSpeedBonus: 0.15,
+        },
+        ogr: {
+            moralePerSec: -3,
+            fleeThresholdBonus: 0.10,
+        },
+        cleric: {
+            hpRegenPerSec: 3,
+            undeadSurvivalSeconds: 7,   // how long full-HP Undead survives inside aura
+            undeadTickInterval: 0.5,    // seconds between holy damage ticks
+        },
+        druid: {
+            hpRegenPerSec: 1.5,
+            enemySlowFactor: 0.20,
+        },
+        enchanter: {
+            attackBonus: 0.10,
+            armorBonus: 3,
+            moveSpeedBonus: 0.10,
+        },
+        pyromancer: {
+            fireDamagePerTick: 5,
+            tickInterval: 1.0,
+        },
+        necromancer: {
+            attackCursePerLevel: 0.03,
+            riseChancePerLevel: 0.05,   // 5% per level
+        },
     },
-    hammerLord: {
-      armorBonus: 5,
-      structureDamageBonus: 0.30,
-    },
-    ranger: {
-      accuracyBonus: 0.20,
-      rangeBonus: 50,         // px
-    },
-    shadowblade: {
-      aggroRadiusReduction: 0.30,
-      moveSpeedBonus: 0.15,
-    },
-    ogr: {
-      moralePerSec: -3,
-      fleeThresholdBonus: 0.10,
-    },
-    cleric: {
-      hpRegenPerSec: 3,
-      undeadSurvivalSeconds: 7,   // how long full-HP Undead survives inside aura
-      undeadTickInterval: 0.5,    // seconds between holy damage ticks
-    },
-    druid: {
-      hpRegenPerSec: 1.5,
-      enemySlowFactor: 0.20,
-    },
-    enchanter: {
-      attackBonus: 0.10,
-      armorBonus: 3,
-      moveSpeedBonus: 0.10,
-    },
-    pyromancer: {
-      fireDamagePerTick: 5,
-      tickInterval: 1.0,
-    },
-    necromancer: {
-      attackCursePerLevel: 0.03,
-      riseChancePerLevel: 0.05,   // 5% per level
-    },
-  },
 
-  // ── Hero attack patterns ─────────────────────────────────────────────────
-  heroAttack: {
-    arc: {                        // shared by Fighter, Hammerlord, Ogr, Warsmith, Cleric
-      weaponReach: 48,            // px buffer ahead of hero
-      arcTargets: 3,
-      arcAngle: 120,              // degrees
-      fleeWhenSurroundedSides: 3, // how many sides need enemies before hit-and-run
+    // ── Hero attack patterns ─────────────────────────────────────────────────
+    heroAttack: {
+        arc: {                        // shared by Fighter, Hammerlord, Ogr, Warsmith, Cleric
+            weaponReach: 48,            // px buffer ahead of hero
+            arcTargets: 3,
+            arcAngle: 120,              // degrees
+            fleeWhenSurroundedSides: 3, // how many sides need enemies before hit-and-run
+        },
+        pyromancer: {
+            fireballRadius: 80,              // px blast radius
+            friendlyFireEnabled: true,
+            aiMinFriendlyRatio: 0.25,        // AI won't fire if >25% of blast is friendly units
+            woodStructureMultiplier: 1.5,    // fireball vs. wooden gate/doors
+            stoneStructureMultiplier: 0.30,  // fireball vs. stone walls/towers
+        },
+        necromancer: {
+            boltMaxTargets: 3,
+            boltRange: 400,             // px
+        },
+        druid: {
+            baseReach: 80,              // px
+            reachPerLevel: 15,          // px per level
+            woodStructureDamageMultiplier: 2.0,
+        },
+        enchanter: {
+            vortexZoneSize: 48,         // px per zone cell
+            vortexForwardZones: 3,
+            vortexSideZones: 1,         // each side
+            structureDamageMultiplier: 3.0,
+            vortexCooldown: 2.5,        // seconds
+        },
     },
-    pyromancer: {
-      fireballRadius: 80,              // px blast radius
-      friendlyFireEnabled: true,
-      aiMinFriendlyRatio: 0.25,        // AI won't fire if >25% of blast is friendly units
-      woodStructureMultiplier: 1.5,    // fireball vs. wooden gate/doors
-      stoneStructureMultiplier: 0.30,  // fireball vs. stone walls/towers
-    },
-    necromancer: {
-      boltMaxTargets: 3,
-      boltRange: 400,             // px
-    },
-    druid: {
-      baseReach: 80,              // px
-      reachPerLevel: 15,          // px per level
-      woodStructureDamageMultiplier: 2.0,
-    },
-    enchanter: {
-      vortexZoneSize: 48,         // px per zone cell
-      vortexForwardZones: 3,
-      vortexSideZones: 1,         // each side
-      structureDamageMultiplier: 3.0,
-      vortexCooldown: 2.5,        // seconds
-    },
-  },
 
-  // ── DRIVEN Command Radius ────────────────────────────────────────────────
-  commandRadius: {
-    base: 120,                    // px
-    perLevel: 15,
-  },
+    // ── DRIVEN Command Radius ────────────────────────────────────────────────
+    commandRadius: {
+        base: 120,                    // px
+        perLevel: 15,
+    },
 
-  // ── Warsmith magic resistance ─────────────────────────────────────────────
-  magicResist: {
-    base: 0.10,
-    perLevel: 0.02,
-    max: 0.75,
-  },
+    // ── Warsmith magic resistance ─────────────────────────────────────────────
+    magicResist: {
+        base: 0.10,
+        perLevel: 0.02,
+        max: 0.75,
+    },
 
-  // ── War machines ─────────────────────────────────────────────────────────
-  // Combat output (damage, speed, fire rate) is crew-derived:
-  //   baseDamage    = crew.attack    × crewCount × attackMultiplier
-  //   baseMoveSpeed = crew.moveSpeed             × moveMultiplier
-  //   baseFireRate  = crew.attackSpeed            × fireRateMultiplier
-  // All outputs then scale with effectiveness (crew HP fraction).
-  warMachine: {
-    // Structure HP (Phase 2) — the machine body after crew is wiped
-    structureHp: {
-      batteringRam:  80,
-      ballista:      60,
-      catapult:      100,
-      siegeTower:    200,   // toughest — hardest to destroy once anchored
+    // ── War machines ─────────────────────────────────────────────────────────
+    // Combat output (damage, speed, fire rate) is crew-derived:
+    //   baseDamage    = crew.attack    × crewCount × attackMultiplier
+    //   baseMoveSpeed = crew.moveSpeed             × moveMultiplier
+    //   baseFireRate  = crew.attackSpeed            × fireRateMultiplier
+    // All outputs then scale with effectiveness (crew HP fraction).
+    warMachine: {
+        // Structure HP (Phase 2) — the machine body after crew is wiped
+        structureHp: {
+            batteringRam: 80,
+            ballista: 60,
+            catapult: 100,
+            siegeTower: 200,   // toughest — hardest to destroy once anchored
+        },
+        batteringRam: {
+            attackMultiplier: 2.0,   // crew attack × count × multiplier = gate damage/swing
+            moveMultiplier: 0.4,   // moves at 40% of crew's base speed
+            fireRateMultiplier: 1.0,
+        },
+        ballista: {
+            attackMultiplier: 1.5,
+            moveMultiplier: 0.6,
+            fireRateMultiplier: 0.8,
+            wallPenaltyAccuracy: 0.40,  // −40% accuracy when shooting through walls
+            wallPenaltyDamage: 0.25,  // −25% damage through walls
+            maxPierceTargets: 3,
+            range: 500,   // px
+        },
+        catapult: {
+            attackMultiplier: 2.5,
+            moveMultiplier: 0.5,
+            fireRateMultiplier: 0.6,
+            unitTargetScatter: 120,  // px radius — how far off-centre shots land vs units
+            splashRadius: 80,  // px — damage radius at impact
+            structureDamageMultiplier: 2.5,
+        },
+        siegeTower: {
+            moveMultiplier: 0.3,   // moves at 30% of crew's base speed
+        },
+        // Effectiveness when a machine is recaptured (fresh but undrilled crew)
+        recapturedEffectiveness: 0.70,
     },
-    batteringRam: {
-      attackMultiplier:   2.0,   // crew attack × count × multiplier = gate damage/swing
-      moveMultiplier:     0.4,   // moves at 40% of crew's base speed
-      fireRateMultiplier: 1.0,
-    },
-    ballista: {
-      attackMultiplier:        1.5,
-      moveMultiplier:          0.6,
-      fireRateMultiplier:      0.8,
-      wallPenaltyAccuracy:     0.40,  // −40% accuracy when shooting through walls
-      wallPenaltyDamage:       0.25,  // −25% damage through walls
-      maxPierceTargets:        3,
-      range:                   500,   // px
-    },
-    catapult: {
-      attackMultiplier:          2.5,
-      moveMultiplier:            0.5,
-      fireRateMultiplier:        0.6,
-      unitTargetScatter:         120,  // px radius — how far off-centre shots land vs units
-      splashRadius:               80,  // px — damage radius at impact
-      structureDamageMultiplier:  2.5,
-    },
-    siegeTower: {
-      moveMultiplier:  0.3,   // moves at 30% of crew's base speed
-    },
-    // Effectiveness when a machine is recaptured (fresh but undrilled crew)
-    recapturedEffectiveness: 0.70,
-  },
 
-  // ── Morale ───────────────────────────────────────────────────────────────
-  morale: {
-    startByRank: { regular: 50, veteran: 65, elite: 80 },
-    nearbyDeathPenalty: -5,
-    heroDeath: { instant: -20, debuffPerSec: -5, debuffDuration: 30 },
-    orcBloodlustPerHit: 2,        // morale gained per damage event
-    orcAttackBonusPerHit: 0.01,   // attack fraction gained per damage event
-    orcBloodlustCap: 50,          // max stacked bonus
-  },
+    // ── Morale ───────────────────────────────────────────────────────────────
+    morale: {
+        startByRank: {regular: 50, veteran: 65, elite: 80},
+        nearbyDeathPenalty: -5,
+        heroDeath: {instant: -20, debuffPerSec: -5, debuffDuration: 30},
+        orcBloodlustPerHit: 2,        // morale gained per damage event
+        orcAttackBonusPerHit: 0.01,   // attack fraction gained per damage event
+        orcBloodlustCap: 50,          // max stacked bonus
+    },
 
 } as const;
 ```
@@ -1387,13 +1417,18 @@ the Cleric's aura will drain the Necromancer's aura-raised Undead. Permanent Und
 brought from the TBS map are also at risk. This is intentional design tension, not a bug.
 
 Configuration in `BATTLE_CONFIG.aura.cleric`:
-```typescript
-cleric: {
-  hpRegenPerSec: 3,
-  undeadSurvivalSeconds: 7,   // how long an Undead survives at full HP inside aura
-  undeadTickInterval: 0.5,    // damage tick interval in seconds
+
+```json
+{
+  "cleric": {
+    "hpRegenPerSec": 3,
+    "undeadSurvivalSeconds": 7,   
+    "undeadTickInterval": 0.5
+  }
 }
 ```
+`undeadSurvivalSeconds` - how long an Undead survives at full HP inside aura
+`undeadTickInterval` - damage tick interval in seconds
 
 ### 7.7 Hero Death Effects
 
@@ -1401,8 +1436,8 @@ When a hero is killed:
 
 1. **Aura removed immediately** — all affected units lose the buff/debuff
 2. **Death penalty** on all friendly units that were inside the aura at time of death:
-   - −20 morale (instant)
-   - −5 morale/s debuff for **30 seconds** (applied on top of any new hero aura nearby)
+    - −20 morale (instant)
+    - −5 morale/s debuff for **30 seconds** (applied on top of any new hero aura nearby)
 3. Hero removed from field; omitted from `BattleResult.winnerArmy.heroes` / `winnerLost` as appropriate
 4. **Visual:** brief red flash on affected units + floating "−morale" text; aura ring
    shatters outward as a particle burst
@@ -1431,14 +1466,14 @@ controlled by Warsmith heroes. They operate under completely different rules.
 
 #### Faction Constraints
 
-| Rule | Detail |
-|---|---|
-| **No war machines** | DRIVEN never fields Ballista, Catapult, Battering Ram, or Siege Tower |
-| **No mage heroes** | Only Warsmith heroes are available to DRIVEN armies |
-| **No other hero types** | Fighter, Ranger, Ogr, etc. are never in a DRIVEN army |
-| **Driven regular units** | Only Golem, Gargoyle, and Dendrite |
-| **Aura immunity** | DRIVEN units are fully immune to all hero auras (friendly or enemy) |
-| **Morale immunity** | DRIVEN units have no morale stat and never flee from morale |
+| Rule                     | Detail                                                                |
+|--------------------------|-----------------------------------------------------------------------|
+| **No war machines**      | DRIVEN never fields Ballista, Catapult, Battering Ram, or Siege Tower |
+| **No mage heroes**       | Only Warsmith heroes are available to DRIVEN armies                   |
+| **No other hero types**  | Fighter, Ranger, Ogr, etc. are never in a DRIVEN army                 |
+| **Driven regular units** | Only Golem, Gargoyle, and Dendrite                                    |
+| **Aura immunity**        | DRIVEN units are fully immune to all hero auras (friendly or enemy)   |
+| **Morale immunity**      | DRIVEN units have no morale stat and never flee from morale           |
 
 #### Command Radius Mechanic
 
@@ -1451,9 +1486,11 @@ commandRadius = CMD_BASE + warsmith.level * CMD_PER_LEVEL
 Tunable: `CMD_BASE = 120px`, `CMD_PER_LEVEL = 15px`
 
 **DRIVEN units inside at least one Warsmith's Command Radius:**
+
 - Act normally — IDLE, MOVING, ENGAGING states work as usual
 
 **DRIVEN units outside ALL Command Radii → enter `DORMANT` state:**
+
 - Stop moving instantly
 - Cannot attack
 - **Cannot be damaged** — they become inert objects
@@ -1497,8 +1534,8 @@ Does **not** apply to physical damage.
 
 #### Victory Condition Addition for DRIVEN
 
-| Condition | Winner | Applies when |
-|---|---|---|
+| Condition            | Winner   | Applies when                       |
+|----------------------|----------|------------------------------------|
 | All Warsmiths killed | Opponent | Defending or attacking DRIVEN army |
 
 This condition is checked in addition to the standard conditions in §6.7.
@@ -1550,6 +1587,7 @@ PreloadScene           loads assets, shows loading screen (see below)
 `BattleUIScene` runs as a **parallel overlay scene** launched with `this.scene.launch(...)`.
 
 **Data flow between scenes:**
+
 ```
 TBS app
   │  BattleContext (prop / shared store)
@@ -1567,8 +1605,8 @@ for the TBS part of the game:
 
 ```tsx
 <ProgressPopup
-  screenPosition={{ x: centreX, y: centreY }}
-  message="Loading battle assets…"
+    screenPosition={{x: centreX, y: centreY}}
+    message="Loading battle assets…"
 />
 ```
 
@@ -1608,6 +1646,7 @@ inside Phaser scenes.
 #### Minimap
 
 The `BattleUIScene` includes a **minimap overlay** (Battle Phase only — not shown during Deploy):
+
 - Full 1000 × 1000 m world at reduced scale in a corner of the screen
 - Current camera viewport rectangle (drag to pan the camera)
 - Unit dots: **player army = blue**, **enemy army = red** (regardless of attacker/defender role)
@@ -1630,10 +1669,11 @@ army panel, battlefield outer frame, zone boundary frames, battle log.
 
 **`PopupWrapper`** (`src/components/popups/PopupWrapper.tsx`)
 Wraps `FantasyBorderFrame` and adds:
+
 - `onClose` callback triggered by **click-outside** or **Escape key**
 - Always `flexibleSizing={true}`
 - Compact tile dimensions (`{ width: 20, height: 70 }`) — suits dialog-sized frames
-Use for all dismissible dialogs: war machine loading, pack info, battle unit selection.
+  Use for all dismissible dialogs: war machine loading, pack info, battle unit selection.
 
 **`ProgressPopup`** (`src/components/popups/ProgressPopup.tsx`)
 Blocking (`accessible={false}`) popup with a CSS-animated progress bar and a text message.
@@ -1658,36 +1698,36 @@ stone texture**. React layers stay transparent or use a dark overlay — never r
 
 **Summary of panels:**
 
-| Panel | Component | Phase | `accessible` | Notes |
-|---|---|---|---|---|
-| Battlefield outer frame | `FantasyBorderFrame` | Both | `true` | Right side; contains Phaser canvas + zone frames |
-| Attacker zone border | `FantasyBorderFrame` | Deploy | `true` | Top 20% of canvas height |
-| Neutral zone border | `FantasyBorderFrame` | Deploy | `true` | Next 10% |
-| Defender zone border | `FantasyBorderFrame` | Deploy | `true` | Bottom 70% |
-| Army panel | `FantasyBorderFrame` | Deploy | `true` | Docked **left**; full viewport height; Ready + Retreat buttons |
-| Pack info panel | `PopupWrapper` | Deploy | `true` | Near selected pack; closes on click-outside / Escape |
-| War machine loading dialog | `PopupWrapper` | Deploy | `false` | Centred; closes on Confirm / Cancel / Escape |
-| Invalid placement error | `ErrorMessagePopup` | Deploy | `true` | Near cursor; closes on click-outside / Escape |
-| Loading screen | `ProgressPopup` | Preload | `false` | Blocking; progress bar + message |
-| Battle log panel | `FantasyBorderFrame` | Battle | `true` | Docked corner; scrollable |
-| Selection info panel | `PopupWrapper` | Battle | `true` | Near selected unit; closes on click-outside |
+| Panel                      | Component            | Phase   | `accessible` | Notes                                                          |
+|----------------------------|----------------------|---------|--------------|----------------------------------------------------------------|
+| Battlefield outer frame    | `FantasyBorderFrame` | Both    | `true`       | Right side; contains Phaser canvas + zone frames               |
+| Attacker zone border       | `FantasyBorderFrame` | Deploy  | `true`       | Top 20% of canvas height                                       |
+| Neutral zone border        | `FantasyBorderFrame` | Deploy  | `true`       | Next 10%                                                       |
+| Defender zone border       | `FantasyBorderFrame` | Deploy  | `true`       | Bottom 70%                                                     |
+| Army panel                 | `FantasyBorderFrame` | Deploy  | `true`       | Docked **left**; full viewport height; Ready + Retreat buttons |
+| Pack info panel            | `PopupWrapper`       | Deploy  | `true`       | Near selected pack; closes on click-outside / Escape           |
+| War machine loading dialog | `PopupWrapper`       | Deploy  | `false`      | Centred; closes on Confirm / Cancel / Escape                   |
+| Invalid placement error    | `ErrorMessagePopup`  | Deploy  | `true`       | Near cursor; closes on click-outside / Escape                  |
+| Loading screen             | `ProgressPopup`      | Preload | `false`      | Blocking; progress bar + message                               |
+| Battle log panel           | `FantasyBorderFrame` | Battle  | `true`       | Docked corner; scrollable                                      |
+| Selection info panel       | `PopupWrapper`       | Battle  | `true`       | Near selected unit; closes on click-outside                    |
 
 ---
 
 ## 9. Development Steps
 
-| Step | Scope | Key deliverables |
-|---|---|---|
-| **1 — Foundation** | Sprite system + battlefield | `UnitSpriteRegistry`, `WORLD_CONFIG` entity sizes, Battlefield `FantasyBorderFrame` layout (army panel left + Phaser canvas right), fixed deploy camera (full world visible), zone rendering (20/10/70 as CSS % of canvas height), `CelticBackground.png` tiled background, `BattleContext` interface, PreloadScene loading screen |
-| **2 — Deploy Phase** | Phase 1 complete | Army panel pack list, ghost-cursor placement, overlap prevention (30×30 m footprint), pack info panel + Remove action, Ready button (enabled on first pack), Retreat button (pre-battle abort), war machine loading dialog, fade-to-black transition, AI opponent deployment, reinforcement queue, Battle Phase camera controls (pan/zoom/WASD/edge-scroll) |
-| **3 — Battle Core** | Movement + melee | Pack expansion into 4×5 formation, `RegularUnit` / `HeroUnit` classes, IDLE / MOVING / ENGAGING states, melee combat, health/death |
-| **4 — Unit AI** | Autonomous behavior | Full AI state machine, aggro radius, target priority, morale system (no hero interaction yet) |
-| **5 — Ranged Combat** | Projectiles + kiting | Projectile system, ranged unit kiting behavior, ranged `WarMachineUnit` basic fire |
-| **6 — War Machines** | Siege mechanics | Area / piercing damage, crew system, structure HP (walls/gate/keep), stalemate detection |
-| **7 — Hero Auras** | Full hero system | Aura rendering, Cleric regen, Necromancer curse, non-magic morale aura, Necromancer Undead rise, hero death penalty |
-| **8 — DRIVEN Faction** | Command radius | Command Radius rendering, DORMANT state, Warsmith defeat condition, magic resistance, Gargoyle wall-flight, Golem bonus vs structures |
-| **9 — Retreat & Results** | End conditions | Retreat command with confirmation, victory detection, war machine capture, `BattleResult` output |
-| **10 — Polish** | UX / VFX | Hit sparks, death effects, aura shatter on hero death, Undead collapse effect, reinforcement fanfare, battle log panel, sound hooks |
+| Step                      | Scope                       | Key deliverables                                                                                                                                                                                                                                                                                                                                            |
+|---------------------------|-----------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **1 — Foundation**        | Sprite system + battlefield | `UnitSpriteRegistry`, `WORLD_CONFIG` entity sizes, Battlefield `FantasyBorderFrame` layout (army panel left + Phaser canvas right), fixed deploy camera (full world visible), zone rendering (20/10/70 as CSS % of canvas height), `CelticBackground.png` tiled background, `BattleContext` interface, PreloadScene loading screen                          |
+| **2 — Deploy Phase**      | Phase 1 complete            | Army panel pack list, ghost-cursor placement, overlap prevention (30×30 m footprint), pack info panel + Remove action, Ready button (enabled on first pack), Retreat button (pre-battle abort), war machine loading dialog, fade-to-black transition, AI opponent deployment, reinforcement queue, Battle Phase camera controls (pan/zoom/WASD/edge-scroll) |
+| **3 — Battle Core**       | Movement + melee            | Pack expansion into 4×5 formation, `RegularUnit` / `HeroUnit` classes, IDLE / MOVING / ENGAGING states, melee combat, health/death                                                                                                                                                                                                                          |
+| **4 — Unit AI**           | Autonomous behavior         | Full AI state machine, aggro radius, target priority, morale system (no hero interaction yet)                                                                                                                                                                                                                                                               |
+| **5 — Ranged Combat**     | Projectiles + kiting        | Projectile system, ranged unit kiting behavior, ranged `WarMachineUnit` basic fire                                                                                                                                                                                                                                                                          |
+| **6 — War Machines**      | Siege mechanics             | Area / piercing damage, crew system, structure HP (walls/gate/keep), stalemate detection                                                                                                                                                                                                                                                                    |
+| **7 — Hero Auras**        | Full hero system            | Aura rendering, Cleric regen, Necromancer curse, non-magic morale aura, Necromancer Undead rise, hero death penalty                                                                                                                                                                                                                                         |
+| **8 — DRIVEN Faction**    | Command radius              | Command Radius rendering, DORMANT state, Warsmith defeat condition, magic resistance, Gargoyle wall-flight, Golem bonus vs structures                                                                                                                                                                                                                       |
+| **9 — Retreat & Results** | End conditions              | Retreat command with confirmation, victory detection, war machine capture, `BattleResult` output                                                                                                                                                                                                                                                            |
+| **10 — Polish**           | UX / VFX                    | Hit sparks, death effects, aura shatter on hero death, Undead collapse effect, reinforcement fanfare, battle log panel, sound hooks                                                                                                                                                                                                                         |
 
 **Playable prototype target:** Steps 1–4 (armies fight, units have basic AI, player can assign targets).
 **Full feature complete:** Steps 1–10.
@@ -1696,55 +1736,55 @@ stone texture**. React layers stay transparent or use a dark overlay — never r
 
 ## 10. Resolved Decisions
 
-| # | Question | Decision |
-|---|---|---|
-| OQ-1 | Can the player be the defender? | Yes. `BattleContext.playerSide` carries the role from TBS. Camera starts on the player's side; coordinates stay fixed. |
-| OQ-2 | Should zone percentages be configurable? | Yes — `BattlefieldConfig.zones` is optional; defaults to 20/10/70 when omitted. |
-| OQ-3 | Formation when a pack expands? | **4 × 5 grid** within the pack's footprint. Partial packs leave trailing grid cells empty. |
-| OQ-4 | Hero death → morale effect? | Yes — full aura + death penalty system (§7). Magic heroes heal/curse; non-magic heroes boost morale. Effect disappears on death + 30 s debuff. |
-| OQ-5 | Time limit for assault? | No time limit. Stalemate is detected automatically (§3.3) and triggers auto-retreat for the attacker. |
-| OQ-6 | Ranger aura: ranged units only, or small bonus to melee too? | Ranged-only confirmed for now; revisit in Step 7. |
-| OQ-7 | Do Necromancer aura-raised Undead persist after the Necromancer dies? | No — they collapse instantly. Permanent Undead (from TBS army) survive normally. No re-raising of killed Undead in the same battle. See §7.4. |
-| OQ-8 | Should the Warsmith hero personally be immune to magic debuffs? | Not immune — resists magic proportionally to level (§7.10). Max 75% resistance at level 32. |
-| OQ-9 | Dendrite special abilities? | **Reach Attack** — 360° targeting, ignores unit/terrain obstruction, one chosen target, damage falls off with distance. Not AoE. See §6.11. |
-| OQ-10 | War machine capture: any crew type or optimal only? | Wrong crew type → machine **destroyed**. Only correct crew type can capture Catapult / Ballista. Battering Ram and Siege Tower become landscape — not capturable. See §6.10.3. |
-| OQ-11 | Siege Tower anchored: who can use it, can it be destroyed? | Once anchored → **indestructible permanent bridge usable by both sides** — same as a broken gate or breached wall. Crew unmounts at wall top proportional to surviving HP. Halted-in-transit tower becomes inert obstacle. See §6.10.5. |
-| OQ-12 | What is the `BattleArmy` interface? | Defined as `{ controlledBy: string; regulars: RegularsState[]; heroes: HeroState[]; warMachines: WarMachineState[] }`. Used as both input (`BattleContext.attacker/defender`) and output (`BattleResult.winnerArmy/winnerLost/loserLost`). See §2.1–2.2. |
-| OQ-13 | `BattleResult` structure — how are survivors and losses reported? | Replaced flat survivor list with `winnerArmy` (survivors + captures), `winnerLost`, `loserLost` (all as `BattleArmy`), plus `lostBuildings: BuildingType[]`. `endCondition` retained for TBS routing logic. See §2.2. |
-| OQ-14 | Can ranged units (Elf, Dark-Elf) crew war machines? | **No.** Only melee regular unit types may crew or capture any war machine. Ranged units cannot operate ground equipment. Ballista crew updated to melee types accordingly. See §5.2 and §6.10.3. |
-| OQ-15 | Ranged accuracy formula? | Not yet fully specified. Confirmed direction: **angular deviation + hit probability** — a shot may deviate by a random angle (proportional to `1 − accuracy`) and has a flat miss chance. Exact formula to be defined in Step 5. See §6.5. |
-| OQ-16 | Target priority — does player command override AI? | Yes. **Player-assigned target is the highest priority** in all cases, overriding every AI rule. See §6.4. |
-| OQ-17 | Reinforcement trigger and queue behaviour? | Trigger: any field pack reaches 0 survivors (regular pack or hero). Entry point: attacker = top edge; defender = centre of defender zone (castle spawn area). Queue order: regular packs → heroes → empty (no spawn). See §6.8. |
-| OQ-18 | Does the player configure the reinforcement queue? | **No.** The queue is built automatically from the army surplus in priority order (Heroes → Regulars; War Machines dropped). No player interaction required. See §5.3. |
-| OQ-19 | What is the Gargoyle's attack type? | **Standard melee.** Flight is a mobility passive — Gargoyles fight in close contact like any melee unit; they simply ignore terrain and wall obstacles to reach their target. See §6.11. |
-| OQ-20 | How does the AI deploy its army? | Via **predefined formation schemas** keyed on terrain and army composition. Default schema: melee regulars in front → melee heroes → ranged regulars → ranged heroes → war machines flanked by melee. Future schemas adapt to siege vs. open field. See §5.4. |
-| OQ-21 | DRIVEN stalemate in a siege when only Gargoyles remain? | If DRIVEN has no Golems or Dendrites and all walls/gates are intact, Gargoyles can fly over walls but cannot clear the entire castle within Command Radius limits. If the defender retreats deep enough to be outside all Command Radii, DRIVEN cannot win → stalemate/retreat. See §3.3. |
-| OQ-22 | How is war machine crew assigned and can multiple packs crew one machine? | During deploy: player selects exactly **one melee unit pack** per war machine (via dialog or by clicking the machine on the field). Only melee unit types eligible. During battle: directing a melee pack to an unoccupied machine crews it (capture rules apply). One pack per machine. See §5.2. |
-| OQ-23 | Is Halfling melee or ranged? | **Ranged** (and weak). The §6.5 attack type table is correct. §5.4 formation updated: Halflings move to ROW 3 (ranged). Siege Tower crew updated to Ward-hands only (Halflings are ranged — ineligible to crew). See §6.5, §5.4, §6.10.5. |
-| OQ-24 | Battlefield pixel dimensions? | World = **1000 m × 1000 m** (4000 × 4000 world px at 4 px/m). Default viewport = **100 × 100 m** visible. Min zoom = 30 m view, max zoom = 250 m view. Minimap provided for navigation. See §3.4 and `WORLD_CONFIG`. |
-| OQ-25 | `BattleContext` → Phaser scene transfer mechanism? | React stores context in `game.registry`; scenes read from registry and pass forward via `scene.start(key, data)` / `init(data)`; result returns to React via a shared `EventBus`. See §8. |
-| OQ-26 | Camera pan/zoom constraints? | Camera starts centred on the **player's deploy zone**. Zoom range: 30 m (max in) to 250 m (max out) visible area. Pan is free within world bounds. See §3.4. |
-| OQ-27 | Zone visual style during Deploy Phase? | Celtic-style border assets (reused from TBS). Player's own zone fully lit; opposing zone and neutral zone darkened but visible. Zone text labels. All overlays removed at battle start. See §5.1 Zone Visuals. |
-| OQ-28 | Placeholder sprites for Phase 1? | **Coloured rectangles** — no sprite assets needed for Steps 1–2. Colour per unit type (Orc=green, Warrior=grey, Halfling=light brown, Hero=gold, War machine=dark red, larger size). Real sprites added from Step 3 onwards via `UnitSpriteRegistry`. See §4.3. |
-| OQ-29 | What does `WarMachineState.count` represent? | Total number of machines of that type in the army. Each machine = 1 pack slot. A player with `count: 3` may deploy up to 3 packs. Machines over the 25-pack limit are permanently dropped. See §4.1. |
-| OQ-30 | Where are war machine base stats stored? | No hardcoded base stats. All combat output (damage, move speed, fire rate) is **derived from crew `CombatStats`** via per-machine multipliers in `BATTLE_CONFIG.warMachine[type]`. Better crew = stronger machine. See §5.2, `BATTLE_CONFIG`. |
-| OQ-31 | Are `RegularUnitType`, `HeroUnitType`, `WarMachineType` defined in TBS? | Yes — defined as `(typeof XxxName)[keyof typeof XxxName]` type aliases. Added to §11 for completeness. |
-| OQ-32 | Does the RTS need to read `Artifact` data? | **No.** Artifacts are opaque to the RTS — received in `HeroState.artifacts` and returned unchanged in `BattleResult`. No gameplay effect in current scope. |
-| OQ-33 | Does the RTS need to know about `BuildingType` in detail? | **No.** The RTS collects the `type` string of each destroyed `StructureConfig` and returns it as `BuildingType[]` in `BattleResult.lostBuildings`. TBS interprets the list. `BuildingType = StructureConfig['type']`. See §11. |
-| OQ-34 | How are battlefield buildings provided? Are they always present? | Buildings are constructed during TBS play — **by default none exist**. TBS provides the list of present structures in `BattlefieldConfig.structures[]`. RTS returns `lostBuildings` with the types of any that were destroyed. See §2.1–2.2. |
-| OQ-35 | What component should be used for all UI windows and panels in the RTS battle module? | **`FantasyBorderFrame`** (`src/components/fantasy-border-frame/FantasyBorderFrame.tsx`). It is the standard window component shared across the whole application (TBS + RTS). Use `accessible={true}` for non-modal panels (canvas stays interactive) and `accessible={false}` for modal dialogs (backdrop blocks canvas). See §8 React UI Overlay and §5.1 Zone Visuals / Army Panel. |
+| #     | Question                                                                              | Decision                                                                                                                                                                                                                                                                                                                                                                                                                              |
+|-------|---------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| OQ-1  | Can the player be the defender?                                                       | Yes. `BattleContext.playerSide` carries the role from TBS. Camera starts on the player's side; coordinates stay fixed.                                                                                                                                                                                                                                                                                                                |
+| OQ-2  | Should zone percentages be configurable?                                              | Yes — `BattlefieldConfig.zones` is optional; defaults to 20/10/70 when omitted.                                                                                                                                                                                                                                                                                                                                                       |
+| OQ-3  | Formation when a pack expands?                                                        | **4 × 5 grid** within the pack's footprint. Partial packs leave trailing grid cells empty.                                                                                                                                                                                                                                                                                                                                            |
+| OQ-4  | Hero death → morale effect?                                                           | Yes — full aura + death penalty system (§7). Magic heroes heal/curse; non-magic heroes boost morale. Effect disappears on death + 30 s debuff.                                                                                                                                                                                                                                                                                        |
+| OQ-5  | Time limit for assault?                                                               | No time limit. Stalemate is detected automatically (§3.3) and triggers auto-retreat for the attacker.                                                                                                                                                                                                                                                                                                                                 |
+| OQ-6  | Ranger aura: ranged units only, or small bonus to melee too?                          | Ranged-only confirmed for now; revisit in Step 7.                                                                                                                                                                                                                                                                                                                                                                                     |
+| OQ-7  | Do Necromancer aura-raised Undead persist after the Necromancer dies?                 | No — they collapse instantly. Permanent Undead (from TBS army) survive normally. No re-raising of killed Undead in the same battle. See §7.4.                                                                                                                                                                                                                                                                                         |
+| OQ-8  | Should the Warsmith hero personally be immune to magic debuffs?                       | Not immune — resists magic proportionally to level (§7.10). Max 75% resistance at level 32.                                                                                                                                                                                                                                                                                                                                           |
+| OQ-9  | Dendrite special abilities?                                                           | **Reach Attack** — 360° targeting, ignores unit/terrain obstruction, one chosen target, damage falls off with distance. Not AoE. See §6.11.                                                                                                                                                                                                                                                                                           |
+| OQ-10 | War machine capture: any crew type or optimal only?                                   | Wrong crew type → machine **destroyed**. Only correct crew type can capture Catapult / Ballista. Battering Ram and Siege Tower become landscape — not capturable. See §6.10.3.                                                                                                                                                                                                                                                        |
+| OQ-11 | Siege Tower anchored: who can use it, can it be destroyed?                            | Once anchored → **indestructible permanent bridge usable by both sides** — same as a broken gate or breached wall. Crew unmounts at wall top proportional to surviving HP. Halted-in-transit tower becomes inert obstacle. See §6.10.5.                                                                                                                                                                                               |
+| OQ-12 | What is the `BattleArmy` interface?                                                   | Defined as `{ controlledBy: string; regulars: RegularsState[]; heroes: HeroState[]; warMachines: WarMachineState[] }`. Used as both input (`BattleContext.attacker/defender`) and output (`BattleResult.winnerArmy/winnerLost/loserLost`). See §2.1–2.2.                                                                                                                                                                              |
+| OQ-13 | `BattleResult` structure — how are survivors and losses reported?                     | Replaced flat survivor list with `winnerArmy` (survivors + captures), `winnerLost`, `loserLost` (all as `BattleArmy`), plus `lostBuildings: BuildingType[]`. `endCondition` retained for TBS routing logic. See §2.2.                                                                                                                                                                                                                 |
+| OQ-14 | Can ranged units (Elf, Dark-Elf) crew war machines?                                   | **No.** Only melee regular unit types may crew or capture any war machine. Ranged units cannot operate ground equipment. Ballista crew updated to melee types accordingly. See §5.2 and §6.10.3.                                                                                                                                                                                                                                      |
+| OQ-15 | Ranged accuracy formula?                                                              | Not yet fully specified. Confirmed direction: **angular deviation + hit probability** — a shot may deviate by a random angle (proportional to `1 − accuracy`) and has a flat miss chance. Exact formula to be defined in Step 5. See §6.5.                                                                                                                                                                                            |
+| OQ-16 | Target priority — does player command override AI?                                    | Yes. **Player-assigned target is the highest priority** in all cases, overriding every AI rule. See §6.4.                                                                                                                                                                                                                                                                                                                             |
+| OQ-17 | Reinforcement trigger and queue behaviour?                                            | Trigger: any field pack reaches 0 survivors (regular pack or hero). Entry point: attacker = top edge; defender = centre of defender zone (castle spawn area). Queue order: regular packs → heroes → empty (no spawn). See §6.8.                                                                                                                                                                                                       |
+| OQ-18 | Does the player configure the reinforcement queue?                                    | **No.** The queue is built automatically from the army surplus in priority order (Heroes → Regulars; War Machines dropped). No player interaction required. See §5.3.                                                                                                                                                                                                                                                                 |
+| OQ-19 | What is the Gargoyle's attack type?                                                   | **Standard melee.** Flight is a mobility passive — Gargoyles fight in close contact like any melee unit; they simply ignore terrain and wall obstacles to reach their target. See §6.11.                                                                                                                                                                                                                                              |
+| OQ-20 | How does the AI deploy its army?                                                      | Via **predefined formation schemas** keyed on terrain and army composition. Default schema: melee regulars in front → melee heroes → ranged regulars → ranged heroes → war machines flanked by melee. Future schemas adapt to siege vs. open field. See §5.4.                                                                                                                                                                         |
+| OQ-21 | DRIVEN stalemate in a siege when only Gargoyles remain?                               | If DRIVEN has no Golems or Dendrites and all walls/gates are intact, Gargoyles can fly over walls but cannot clear the entire castle within Command Radius limits. If the defender retreats deep enough to be outside all Command Radii, DRIVEN cannot win → stalemate/retreat. See §3.3.                                                                                                                                             |
+| OQ-22 | How is war machine crew assigned and can multiple packs crew one machine?             | During deploy: player selects exactly **one melee unit pack** per war machine (via dialog or by clicking the machine on the field). Only melee unit types eligible. During battle: directing a melee pack to an unoccupied machine crews it (capture rules apply). One pack per machine. See §5.2.                                                                                                                                    |
+| OQ-23 | Is Halfling melee or ranged?                                                          | **Ranged** (and weak). The §6.5 attack type table is correct. §5.4 formation updated: Halflings move to ROW 3 (ranged). Siege Tower crew updated to Ward-hands only (Halflings are ranged — ineligible to crew). See §6.5, §5.4, §6.10.5.                                                                                                                                                                                             |
+| OQ-24 | Battlefield pixel dimensions?                                                         | World = **1000 m × 1000 m** (4000 × 4000 world px at 4 px/m). Default viewport = **100 × 100 m** visible. Min zoom = 30 m view, max zoom = 250 m view. Minimap provided for navigation. See §3.4 and `WORLD_CONFIG`.                                                                                                                                                                                                                  |
+| OQ-25 | `BattleContext` → Phaser scene transfer mechanism?                                    | React stores context in `game.registry`; scenes read from registry and pass forward via `scene.start(key, data)` / `init(data)`; result returns to React via a shared `EventBus`. See §8.                                                                                                                                                                                                                                             |
+| OQ-26 | Camera pan/zoom constraints?                                                          | Camera starts centred on the **player's deploy zone**. Zoom range: 30 m (max in) to 250 m (max out) visible area. Pan is free within world bounds. See §3.4.                                                                                                                                                                                                                                                                          |
+| OQ-27 | Zone visual style during Deploy Phase?                                                | Celtic-style border assets (reused from TBS). Player's own zone fully lit; opposing zone and neutral zone darkened but visible. Zone text labels. All overlays removed at battle start. See §5.1 Zone Visuals.                                                                                                                                                                                                                        |
+| OQ-28 | Placeholder sprites for Phase 1?                                                      | **Coloured rectangles** — no sprite assets needed for Steps 1–2. Colour per unit type (Orc=green, Warrior=grey, Halfling=light brown, Hero=gold, War machine=dark red, larger size). Real sprites added from Step 3 onwards via `UnitSpriteRegistry`. See §4.3.                                                                                                                                                                       |
+| OQ-29 | What does `WarMachineState.count` represent?                                          | Total number of machines of that type in the army. Each machine = 1 pack slot. A player with `count: 3` may deploy up to 3 packs. Machines over the 25-pack limit are permanently dropped. See §4.1.                                                                                                                                                                                                                                  |
+| OQ-30 | Where are war machine base stats stored?                                              | No hardcoded base stats. All combat output (damage, move speed, fire rate) is **derived from crew `CombatStats`** via per-machine multipliers in `BATTLE_CONFIG.warMachine[type]`. Better crew = stronger machine. See §5.2, `BATTLE_CONFIG`.                                                                                                                                                                                         |
+| OQ-31 | Are `RegularUnitType`, `HeroUnitType`, `WarMachineType` defined in TBS?               | Yes — defined as `(typeof XxxName)[keyof typeof XxxName]` type aliases. Added to §11 for completeness.                                                                                                                                                                                                                                                                                                                                |
+| OQ-32 | Does the RTS need to read `Artifact` data?                                            | **No.** Artifacts are opaque to the RTS — received in `HeroState.artifacts` and returned unchanged in `BattleResult`. No gameplay effect in current scope.                                                                                                                                                                                                                                                                            |
+| OQ-33 | Does the RTS need to know about `BuildingType` in detail?                             | **No.** The RTS collects the `type` string of each destroyed `StructureConfig` and returns it as `BuildingType[]` in `BattleResult.lostBuildings`. TBS interprets the list. `BuildingType = StructureConfig['type']`. See §11.                                                                                                                                                                                                        |
+| OQ-34 | How are battlefield buildings provided? Are they always present?                      | Buildings are constructed during TBS play — **by default none exist**. TBS provides the list of present structures in `BattlefieldConfig.structures[]`. RTS returns `lostBuildings` with the types of any that were destroyed. See §2.1–2.2.                                                                                                                                                                                          |
+| OQ-35 | What component should be used for all UI windows and panels in the RTS battle module? | **`FantasyBorderFrame`** (`src/components/fantasy-border-frame/FantasyBorderFrame.tsx`). It is the standard window component shared across the whole application (TBS + RTS). Use `accessible={true}` for non-modal panels (canvas stays interactive) and `accessible={false}` for modal dialogs (backdrop blocks canvas). See §8 React UI Overlay and §5.1 Zone Visuals / Army Panel.                                                |
 | OQ-36 | How do React zone frames track Phaser world-space zone boundaries as the camera pans? | Resolved by fixing the Deploy Phase camera — the full 1000 × 1000 m world is visible at once, no pan. Zone boundaries map directly to CSS percentages of canvas height (attacker = top 20%, neutral = next 10%, defender = bottom 70%). No world-coordinate tracking needed. The Phaser canvas is mounted inside the Battlefield `FantasyBorderFrame` content area; zone frames are siblings inside the same div. See §3.4, §5.1, §8. |
-| OQ-37 | What are entity sizes on the battlefield? | **Deploy Phase:** pack footprint = **30 × 30 m**. **Battle Phase:** individual unit = **2 × 2 m**; war machine (Catapult / Ballista / Battering Ram) = **5 × 10 m**; Siege Tower = **10 × 10 m**. All values live in `WORLD_CONFIG` for easy tuning. See §3.4. |
-| OQ-38 | What camera controls are used during the Battle Phase? | Middle-mouse drag or right-click drag to pan; scroll wheel to zoom; WASD / arrow keys to pan; edge scroll. Controls will be implemented first and fine-tuned after initial playtest. **Deploy Phase has no camera** — the full world is visible without pan/zoom. See §3.4. |
-| OQ-39 | Which side does the army panel dock to? | **Left side** always. Battlefield panel occupies the remaining width on the right. See §5.1, §8. |
-| OQ-40 | What visual feedback occurs when placing a pack (placement mode)? | A **ghost rectangle** (unit colour darkened) follows the cursor on the Phaser canvas. Cursor over valid position: normal ghost. Cursor over invalid position (wrong zone or overlap): ghost tinted **red**. Cancel: right-click or click a different pack row in the army panel. See §5.1. |
-| OQ-41 | Can two packs overlap during Deploy Phase? | **No.** Pack footprint = 30 × 30 m; no overlap allowed — same rule as Battle Phase units. Ghost turns red if placement would overlap an existing pack. See §5.1. |
-| OQ-42 | When is the Ready button enabled? What happens to unplaced packs? | Ready button enabled as soon as **at least one pack is placed**. All remaining unplaced packs enter the reinforcement queue automatically. A separate **Retreat** button (always enabled) allows aborting the battle before it starts — e.g. attacker has no siege equipment vs. walls. See §5.1. |
-| OQ-43 | What does the PreloadScene loading screen look like? | A centred `FantasyBorderFrame` (modal, `accessible={false}`) with a progress bar and "Loading…" text, backed by `CelticBackground.png`. Reuses the loading progress component already built for the TBS part of the game. See §8. |
-| OQ-44 | What transition plays when "Ready for Battle" is confirmed? | **Fade to black**, then Battle Phase begins. See §5.1. |
-| OQ-45 | What colours represent the two sides on the minimap? | **Player's army = blue dot**, **enemy army = red dot** — regardless of which side (attacker or defender) the player controls. See §3.4. |
-| OQ-46 | Is a minimap needed during the Deploy Phase? | **No.** During Deploy the full battlefield is visible (fixed camera), making a minimap redundant. Minimap is Battle Phase only (`BattleUIScene`). See §3.4. |
-| OQ-47 | How are placed packs labelled / interacted with on the canvas? | Clicking a placed pack (or its row in the army panel) opens a **pack info panel** showing unit type, rank, count, and key stats. The info panel also offers a **Remove** action that unplaces the pack and returns it to the army list. No floating count badge on the rectangle is required — info is on demand. See §5.1. |
+| OQ-37 | What are entity sizes on the battlefield?                                             | **Deploy Phase:** pack footprint = **30 × 30 m**. **Battle Phase:** individual unit = **2 × 2 m**; war machine (Catapult / Ballista / Battering Ram) = **5 × 10 m**; Siege Tower = **10 × 10 m**. All values live in `WORLD_CONFIG` for easy tuning. See §3.4.                                                                                                                                                                        |
+| OQ-38 | What camera controls are used during the Battle Phase?                                | Middle-mouse drag or right-click drag to pan; scroll wheel to zoom; WASD / arrow keys to pan; edge scroll. Controls will be implemented first and fine-tuned after initial playtest. **Deploy Phase has no camera** — the full world is visible without pan/zoom. See §3.4.                                                                                                                                                           |
+| OQ-39 | Which side does the army panel dock to?                                               | **Left side** always. Battlefield panel occupies the remaining width on the right. See §5.1, §8.                                                                                                                                                                                                                                                                                                                                      |
+| OQ-40 | What visual feedback occurs when placing a pack (placement mode)?                     | A **ghost rectangle** (unit colour darkened) follows the cursor on the Phaser canvas. Cursor over valid position: normal ghost. Cursor over invalid position (wrong zone or overlap): ghost tinted **red**. Cancel: right-click or click a different pack row in the army panel. See §5.1.                                                                                                                                            |
+| OQ-41 | Can two packs overlap during Deploy Phase?                                            | **No.** Pack footprint = 30 × 30 m; no overlap allowed — same rule as Battle Phase units. Ghost turns red if placement would overlap an existing pack. See §5.1.                                                                                                                                                                                                                                                                      |
+| OQ-42 | When is the Ready button enabled? What happens to unplaced packs?                     | Ready button enabled as soon as **at least one pack is placed**. All remaining unplaced packs enter the reinforcement queue automatically. A separate **Retreat** button (always enabled) allows aborting the battle before it starts — e.g. attacker has no siege equipment vs. walls. See §5.1.                                                                                                                                     |
+| OQ-43 | What does the PreloadScene loading screen look like?                                  | A centred `FantasyBorderFrame` (modal, `accessible={false}`) with a progress bar and "Loading…" text, backed by `CelticBackground.png`. Reuses the loading progress component already built for the TBS part of the game. See §8.                                                                                                                                                                                                     |
+| OQ-44 | What transition plays when "Ready for Battle" is confirmed?                           | **Fade to black**, then Battle Phase begins. See §5.1.                                                                                                                                                                                                                                                                                                                                                                                |
+| OQ-45 | What colours represent the two sides on the minimap?                                  | **Player's army = blue dot**, **enemy army = red dot** — regardless of which side (attacker or defender) the player controls. See §3.4.                                                                                                                                                                                                                                                                                               |
+| OQ-46 | Is a minimap needed during the Deploy Phase?                                          | **No.** During Deploy the full battlefield is visible (fixed camera), making a minimap redundant. Minimap is Battle Phase only (`BattleUIScene`). See §3.4.                                                                                                                                                                                                                                                                           |
+| OQ-47 | How are placed packs labelled / interacted with on the canvas?                        | Clicking a placed pack (or its row in the army panel) opens a **pack info panel** showing unit type, rank, count, and key stats. The info panel also offers a **Remove** action that unplaces the pack and returns it to the army list. No floating count badge on the rectangle is required — info is on demand. See §5.1.                                                                                                           |
 
 ---
 
@@ -1758,99 +1798,99 @@ Copied from the TBS shared types for quick reference. The RTS spec is written ag
 // ── Core state types (from TBS shared types) ─────────────────────────────────
 
 export interface CombatStats {
-  hp: number;
-  attack: number;
-  armor: number;
-  moveSpeed: number;
-  attackSpeed: number;  // attacks per second
-  accuracy?: number;    // 0.0–1.0; undefined = always hits (melee)
-  range?: number;       // px; undefined = melee
+    hp: number;
+    attack: number;
+    armor: number;
+    moveSpeed: number;
+    attackSpeed: number;  // attacks per second
+    accuracy?: number;    // 0.0–1.0; undefined = always hits (melee)
+    range?: number;       // px; undefined = melee
 }
 
 export const UnitRank = {
-  REGULAR: 'regular',
-  VETERAN: 'veteran',
-  ELITE:   'elite',
+    REGULAR: 'regular',
+    VETERAN: 'veteran',
+    ELITE: 'elite',
 } as const;
 export type UnitRankType = (typeof UnitRank)[keyof typeof UnitRank];
 
 export interface RegularsState {
-  type:        RegularUnitType;
-  rank:        UnitRankType;
-  count:       number;
-  combatStats: CombatStats;
-  cost:        number;   // maintenance cost per turn per unit
+    type: RegularUnitType;
+    rank: UnitRankType;
+    count: number;
+    combatStats: CombatStats;
+    cost: number;   // maintenance cost per turn per unit
 }
 
 export interface HeroState {
-  id:        string;      // uuid
-  type:      HeroUnitType;
-  name:      string;
-  level:     number;
-  combatStats: CombatStats;
-  artifacts: Artifact[];  // currently max 1 artifact per hero
-  mana?:     number;      // mana produced per turn; undefined for non-magic heroes
-  cost:      number;      // maintenance cost per turn
+    id: string;      // uuid
+    type: HeroUnitType;
+    name: string;
+    level: number;
+    combatStats: CombatStats;
+    artifacts: Artifact[];  // currently max 1 artifact per hero
+    mana?: number;      // mana produced per turn; undefined for non-magic heroes
+    cost: number;      // maintenance cost per turn
 }
 
 export interface WarMachineState {
-  type:       WarMachineType;
-  count:      number;
-  /** How many battles this machine can survive before destruction. Decrements each battle. */
-  durability: number;
+    type: WarMachineType;
+    count: number;
+    /** How many battles this machine can survive before destruction. Decrements each battle. */
+    durability: number;
 }
 
 // ── Unit name enums ───────────────────────────────────────────────────────────
 
 // Regular unit types
 export const RegularUnitName = {
-  WARD_HANDS: 'Ward-hands',
-  WARRIOR:    'Warrior',
-  DWARF:      'Dwarf',
-  ORC:        'Orc',
-  HALFLING:   'Halfling',
-  ELF:        'Elf',
-  DARK_ELF:   'Dark-Elf',
-  // Driven Doctrine units
-  GOLEM:      'Golem',
-  GARGOYLE:   'Gargoyle',
-  DENDRITE:   'Dendrite',
-  // Available only via SUMMON UNDEAD Spell or Necromancer aura
-  UNDEAD:     'Undead',
+    WARD_HANDS: 'Ward-hands',
+    WARRIOR: 'Warrior',
+    DWARF: 'Dwarf',
+    ORC: 'Orc',
+    HALFLING: 'Halfling',
+    ELF: 'Elf',
+    DARK_ELF: 'Dark-Elf',
+    // Driven Doctrine units
+    GOLEM: 'Golem',
+    GARGOYLE: 'Gargoyle',
+    DENDRITE: 'Dendrite',
+    // Available only via SUMMON UNDEAD Spell or Necromancer aura
+    UNDEAD: 'Undead',
 } as const;
 
 // War machine types
 export const WarMachineName = {
-  BALLISTA:     'Ballista',      // piercing bolt, line damage
-  CATAPULT:     'Catapult',      // arc projectile, area damage
-  BATTERING_RAM: 'Battering Ram', // melee vs. gate/walls only
-  SIEGE_TOWER:  'Siege Tower',   // allows units to bypass walls
+    BALLISTA: 'Ballista',      // piercing bolt, line damage
+    CATAPULT: 'Catapult',      // arc projectile, area damage
+    BATTERING_RAM: 'Battering Ram', // melee vs. gate/walls only
+    SIEGE_TOWER: 'Siege Tower',   // allows units to bypass walls
 } as const;
 
 // Hero types
 export const HeroUnitName = {
-  // Non-mage heroes
-  FIGHTER:     'Fighter',      // Battle Cry aura
-  HAMMER_LORD: 'Hammer-lord',  // Iron Resolve aura
-  RANGER:      'Ranger',       // Eagle Eye aura (ranged units only)
-  SHADOW_BLADE:'Shadowblade',  // Shadow Veil aura
-  OGR:         'Ogr',          // Terror aura (enemy debuff)
-  // Mage heroes
-  PYROMANCER:  'Pyromancer',   // Infernal Aura (fire damage to enemies)
-  CLERIC:      'Cleric',       // Divine Blessing (HP regen, strongest)
-  DRUID:       'Druid',        // Nature's Ward (HP regen + enemy slow)
-  ENCHANTER:   'Enchanter',    // Arcane Empowerment (all-stat buff)
-  NECROMANCER: 'Necromancer',  // Death's Embrace (curse + Undead rise)
-  // Non-magic / DRIVEN Doctrine (rejects magic entirely)
-  WARSMITH:    'Warsmith',     // Command Radius (DRIVEN faction leader; no aura; magic resistance)
+    // Non-mage heroes
+    FIGHTER: 'Fighter',      // Battle Cry aura
+    HAMMER_LORD: 'Hammer-lord',  // Iron Resolve aura
+    RANGER: 'Ranger',       // Eagle Eye aura (ranged units only)
+    SHADOW_BLADE: 'Shadowblade',  // Shadow Veil aura
+    OGR: 'Ogr',          // Terror aura (enemy debuff)
+    // Mage heroes
+    PYROMANCER: 'Pyromancer',   // Infernal Aura (fire damage to enemies)
+    CLERIC: 'Cleric',       // Divine Blessing (HP regen, strongest)
+    DRUID: 'Druid',        // Nature's Ward (HP regen + enemy slow)
+    ENCHANTER: 'Enchanter',    // Arcane Empowerment (all-stat buff)
+    NECROMANCER: 'Necromancer',  // Death's Embrace (curse + Undead rise)
+    // Non-magic / DRIVEN Doctrine (rejects magic entirely)
+    WARSMITH: 'Warsmith',     // Command Radius (DRIVEN faction leader; no aura; magic resistance)
 } as const;
 
 export const MAX_HERO_LEVEL = 32;
 
 // ── Derived unit type aliases ─────────────────────────────────────────────────
 export type RegularUnitType = (typeof RegularUnitName)[keyof typeof RegularUnitName];
-export type WarMachineType  = (typeof WarMachineName)[keyof typeof WarMachineName];
-export type HeroUnitType    = (typeof HeroUnitName)[keyof typeof HeroUnitName];
+export type WarMachineType = (typeof WarMachineName)[keyof typeof WarMachineName];
+export type HeroUnitType = (typeof HeroUnitName)[keyof typeof HeroUnitName];
 
 // ── Building types (used in BattleResult.lostBuildings) ──────────────────────
 // Matches StructureConfig.type — RTS returns the type name of each destroyed building.
@@ -1859,12 +1899,12 @@ export type BuildingType = 'castle-wall' | 'gate' | 'tower' | 'keep' | 'barracks
 
 ### War Machine — Crew Requirements
 
-| War machine | Crew unit type | Crew count | Combat role |
-|---|---|---|---|
-| **Ballista** | Warrior / Dwarf (melee — steady precision operators) | 2 | Long-range piercing, anti-hero |
-| **Catapult** | Warrior / Dwarf (strong) | 3 | Area siege, wall damage |
-| **Battering Ram** | Warrior / Orc (heavy) | 4 | Gate/wall only; no ranged attack |
-| **Siege Tower** | Ward-hands only (melee — agile climbers; Halflings are ranged, ineligible) | 4 | Allows units to scale walls; no direct attack |
+| War machine       | Crew unit type                                                             | Crew count | Combat role                                   |
+|-------------------|----------------------------------------------------------------------------|------------|-----------------------------------------------|
+| **Ballista**      | Warrior / Dwarf (melee — steady precision operators)                       | 2          | Long-range piercing, anti-hero                |
+| **Catapult**      | Warrior / Dwarf (strong)                                                   | 3          | Area siege, wall damage                       |
+| **Battering Ram** | Warrior / Orc (heavy)                                                      | 4          | Gate/wall only; no ranged attack              |
+| **Siege Tower**   | Ward-hands only (melee — agile climbers; Halflings are ranged, ineligible) | 4          | Allows units to scale walls; no direct attack |
 
 > **All war machines require melee unit types as crew.** Ranged units (Elf, Dark-Elf, Halfling) cannot
 > crew or capture any war machine. The RTS reads crew type from `WarMachineState`; these
