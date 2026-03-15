@@ -1,0 +1,45 @@
+.fantasy-border-frame {
+  /* Backdrop styles */
+}
+
+.fantasy-border-frame__backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+}
+
+.fantasy-border-frame__dialog {
+  position: fixed;
+  pointer-events: auto;
+}
+
+.fantasy-border-frame__content {
+  position: absolute;
+  box-sizing: border-box;
+}
+
+.fantasy-border-frame__content--not-accessible {
+  background-color: rgba(0, 0, 0, 0.8);
+  padding: 10px;
+}
+
+.fantasy-border-frame__content--flexible {
+  overflow-y: visible;
+}
+
+.fantasy-border-frame__content--fixed {
+  overflow-y: auto;
+}
+
+.fantasy-border-frame__button-area {
+  position: absolute;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+}
