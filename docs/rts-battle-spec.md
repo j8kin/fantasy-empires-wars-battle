@@ -205,7 +205,7 @@ Example: 123 Orc Warriors → `ceil(123 / 20)` = **7 packs** (6 × 20 + 1 × 3)
 Packs beyond the 25-slot limit are queued as **reinforcements** (§6.8).
 
 > **War machine exception:** War machines that don't fit within the 25-pack limit
-> are **permanently lost** — they cannot enter as reinforcements. Players must choose
+> are **permanently not used** — they cannot enter as reinforcements. Players must choose
 > which war machines to bring.
 
 ### 4.2 Unit Sprite Registry
@@ -405,7 +405,6 @@ flee_threshold HP% = 30% − (morale − 50) * 0.2   // low morale = flee at hig
 |---|---|---|
 | All opponent units dead | Remaining side | `'annihilation'` |
 | One side retreats (player command) | Opposing side | `'retreat'` |
-| Attacker destroys the castle **keep** | Attacker | `'objective'` |
 | Stalemate detected (§3.3) | Defender | `'stalemate'` |
 
 ### 6.8 Reinforcements
