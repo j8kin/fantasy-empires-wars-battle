@@ -467,19 +467,32 @@ Displayed inline inside the army panel below the selected row, or as a small flo
 
 #### War Machine Loading Dialog
 
-The war machine crew-selection dialog is a centred modal `<FantasyBorderFrame>`:
+The war machine crew-selection dialog is a centred `<PopupWrapper>` (dismissible modal).
+Escape or clicking outside cancels the dialog without loading the machine:
 
 ```tsx
-<FantasyBorderFrame
+<PopupWrapper
   screenPosition={{ x: centreX, y: centreY }}
-  frameSize={{ width: 400, height: 300 }}
-  accessible={false}           // adds backdrop to block canvas interaction
-  primaryButton={<ConfirmBtn />}
-  secondaryButton={<CancelBtn />}
+  dimensions={{ width: 400, height: 300 }}
+  accessible={false}     // blocking: canvas interaction disabled until resolved
+  onClose={handleCancel}
 >
-  {/* required crew type label, eligible pack list, confirm/cancel */}
-</FantasyBorderFrame>
+  {/* required crew type label, eligible melee pack list, Confirm / Cancel buttons */}
+</PopupWrapper>
 ```
+
+#### Invalid Placement Error
+
+When the player attempts to place a pack in an invalid position (wrong zone, overlap):
+
+```tsx
+<ErrorMessagePopup
+  screenPosition={{ x: cursorX, y: cursorY }}
+  textMessage="Cannot place here — position is outside your deploy zone."
+/>
+```
+
+The popup appears near the cursor and closes automatically on click-outside or Escape.
 
 ### 5.2 War Machine Loading
 
@@ -1549,12 +1562,19 @@ PreloadScene ──> DeployScene ──[DeployResult]──> BattleScene ──[
 
 #### PreloadScene — Loading Screen
 
-The PreloadScene shows a loading screen while assets are loaded. It uses the same
-`FantasyBorderFrame`-based loading component already built for the TBS part of the game.
-The loading screen displays:
-- A centred `FantasyBorderFrame` panel (modal — `accessible={false}`)
-- A progress bar and "Loading…" text inside the frame
-- The `CelticBackground.png` (already available) as the background behind the frame
+The PreloadScene shows a loading screen while assets are loaded using the existing
+**`ProgressPopup`** component (`src/components/popups/ProgressPopup.tsx`) already built
+for the TBS part of the game:
+
+```tsx
+<ProgressPopup
+  screenPosition={{ x: centreX, y: centreY }}
+  message="Loading battle assets…"
+/>
+```
+
+`ProgressPopup` is blocking (`accessible={false}`) and renders its own full-screen
+`blockingOverlay`. `CelticBackground.png` is shown as the scene background behind it.
 
 #### Data Transfer Mechanism
 
@@ -1593,66 +1613,65 @@ The `BattleUIScene` includes a **minimap overlay** (Battle Phase only — not sh
 - Current camera viewport rectangle (drag to pan the camera)
 - Unit dots: **player army = blue**, **enemy army = red** (regardless of attacker/defender role)
 
-#### React UI Overlay — `FantasyBorderFrame`
+#### React UI Overlay — Component Hierarchy
 
 All in-game UI windows and panels are **React DOM elements** rendered on top of the Phaser
-`<canvas>` via a React component tree that is mounted alongside the canvas in the same
-container div.
+`<canvas>`. Three components form the hierarchy — use the most specific one available:
 
-The standard window component is **`FantasyBorderFrame`**, located at
-`src/components/fantasy-border-frame/FantasyBorderFrame.tsx`.
-It provides the same celtic-style ornamental border used across the TBS application.
+```
+FantasyBorderFrame            ← base celtic-border (persistent, non-dismissible panels)
+  └── PopupWrapper            ← adds click-outside + Escape dismissal; flexibleSizing always true
+        ├── ProgressPopup     ← blocking loading screen: animated progress bar + message
+        └── ErrorMessagePopup ← non-blocking inline error text
+```
 
-**Key props:**
+**`FantasyBorderFrame`** (`src/components/fantasy-border-frame/FantasyBorderFrame.tsx`)
+Use for persistent panels that are never dismissed by clicking outside:
+army panel, battlefield outer frame, zone boundary frames, battle log.
 
-| Prop | Type | Default | Purpose |
-|---|---|---|---|
-| `screenPosition` | `{ x, y }` | required | Absolute pixel position on screen |
-| `frameSize` | `{ width, height }` | required | Outer dimensions of the frame |
-| `children` | `ReactNode` | required | Content inside the border |
-| `primaryButton` | `ReactElement` | — | Button placed on the bottom border (e.g., Confirm) |
-| `secondaryButton` | `ReactElement` | — | Second button on the bottom border (e.g., Cancel) |
-| `tileDimensions` | `FrameSize` | `defaultTileDimensions` | Border tile size; controls corner ornament size |
-| `zIndex` | `number` | `1000` | CSS z-index of the frame |
-| `accessible` | `boolean` | `false` | `false` = renders a full-screen backdrop that blocks canvas interaction; `true` = no backdrop, canvas remains interactive |
-| `flexibleSizing` | `boolean` | `false` | `true` = content area height is `auto` (up to `maxHeight`); `false` = fixed height |
+**`PopupWrapper`** (`src/components/popups/PopupWrapper.tsx`)
+Wraps `FantasyBorderFrame` and adds:
+- `onClose` callback triggered by **click-outside** or **Escape key**
+- Always `flexibleSizing={true}`
+- Compact tile dimensions (`{ width: 20, height: 70 }`) — suits dialog-sized frames
+Use for all dismissible dialogs: war machine loading, pack info, battle unit selection.
+
+**`ProgressPopup`** (`src/components/popups/ProgressPopup.tsx`)
+Blocking (`accessible={false}`) popup with a CSS-animated progress bar and a text message.
+Fixed size 400 × 200. Use for the **PreloadScene loading screen**.
+
+**`ErrorMessagePopup`** (`src/components/popups/ErrorMessagePopup.tsx`)
+Non-blocking (`accessible={true}`) popup showing a single error string. Fixed size 400 × 100.
+Dismissed by clicking outside or Escape. Use for transient in-game errors:
+invalid pack placement, no eligible crew for a war machine, etc.
 
 **Background layering model:**
 
 ```
 [ Phaser <canvas> ]   ← CelticBackground.png tiled — the battlefield ground
-[ React DOM overlay ] ← FantasyBorderFrame panels on top; each manages its own background
-                         • accessible panels: transparent content area (stone shows through)
-                         • modal dialogs:     dark fill (rgba(0,0,0,0.8)) behind content
+[ React DOM overlay ] ← panels on top; each manages its own background
+                         • accessible panels:     transparent (stone shows through)
+                         • non-accessible (modal): dark fill (rgba(0,0,0,0.8))
 ```
 
-The `CelticBackground.png` asset (`sprites/border/CelticBackground.png`) is the **single
-shared stone texture** for the entire battlefield. React UI layers must not replicate it —
-they either stay transparent (`accessible={true}`) or use a dark overlay for modals.
+The `CelticBackground.png` (`sprites/border/CelticBackground.png`) is the **single shared
+stone texture**. React layers stay transparent or use a dark overlay — never replicate it.
 
-**Usage rules for the RTS battle module:**
+**Summary of panels:**
 
-- **Non-modal panels** (army panel, zone borders): `accessible={true}` — no backdrop.
-- **Modal dialogs** (war machine loading, retreat confirmation): `accessible={false}` — backdrop
-  blocks the Phaser canvas so the player must resolve the dialog before clicking the game world.
-- **Zone boundary frames**: `accessible={true}`, `flexibleSizing={true}`, sized to the zone rectangle.
-- **Side panels** (army list, battle log): `accessible={true}`, `flexibleSizing={false}`,
-  height = viewport height.
-
-**Summary of panels and their frames:**
-
-| Panel | Phase | `accessible` | `flexibleSizing` | Notes |
+| Panel | Component | Phase | `accessible` | Notes |
 |---|---|---|---|---|
-| Battlefield outer frame | Both | `true` | `false` | Right side; contains Phaser canvas + zone frames |
-| Attacker zone border | Deploy | `true` | `true` | Child of battlefield frame; top 20% of canvas height |
-| Neutral zone border | Deploy | `true` | `true` | Child of battlefield frame; next 10% |
-| Defender zone border | Deploy | `true` | `true` | Child of battlefield frame; bottom 70% |
-| Army panel | Deploy | `true` | `false` | Docked **left**; full viewport height; Ready + Retreat buttons |
-| Pack info panel | Deploy | `true` | `true` | Inline in army panel or floating near selected pack |
-| War machine loading dialog | Deploy | `false` | `false` | Centred modal; Confirm + Cancel buttons |
-| Loading screen | Preload | `false` | `false` | Centred modal; progress bar + text |
-| Battle log panel | Battle | `true` | `true` | Docked corner; scrollable |
-| Selection info panel | Battle | `true` | `true` | Shows selected unit stats |
+| Battlefield outer frame | `FantasyBorderFrame` | Both | `true` | Right side; contains Phaser canvas + zone frames |
+| Attacker zone border | `FantasyBorderFrame` | Deploy | `true` | Top 20% of canvas height |
+| Neutral zone border | `FantasyBorderFrame` | Deploy | `true` | Next 10% |
+| Defender zone border | `FantasyBorderFrame` | Deploy | `true` | Bottom 70% |
+| Army panel | `FantasyBorderFrame` | Deploy | `true` | Docked **left**; full viewport height; Ready + Retreat buttons |
+| Pack info panel | `PopupWrapper` | Deploy | `true` | Near selected pack; closes on click-outside / Escape |
+| War machine loading dialog | `PopupWrapper` | Deploy | `false` | Centred; closes on Confirm / Cancel / Escape |
+| Invalid placement error | `ErrorMessagePopup` | Deploy | `true` | Near cursor; closes on click-outside / Escape |
+| Loading screen | `ProgressPopup` | Preload | `false` | Blocking; progress bar + message |
+| Battle log panel | `FantasyBorderFrame` | Battle | `true` | Docked corner; scrollable |
+| Selection info panel | `PopupWrapper` | Battle | `true` | Near selected unit; closes on click-outside |
 
 ---
 
