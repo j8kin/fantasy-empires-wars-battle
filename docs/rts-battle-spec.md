@@ -760,7 +760,7 @@ If the crew is killed *before* reaching the gate (crew HP → 0 in transit):
 - **Purpose:** Deliver troops to the top of castle walls; create a permanent crossing.
 - **Damage:** Zero — the Siege Tower deals no damage to anything
 - **Move:** Very slow; high structural HP (hardest machine to destroy in transit)
-- **Crew:** Ward-hands only (agile melee climbers; Halflings are ranged and cannot crew war machines)
+- **Crew:** Melee units only — stronger units are more effective
 - **Cannot be captured** — becomes indestructible landscape once anchored
 
 **Lifecycle:**
