@@ -131,7 +131,6 @@ export interface BattleResult {
 - Battering Ram and Siege Tower are **not** returned — they become battlefield scenery.
 - If DRIVEN wins: `winnerArmy.warMachines` is empty — DRIVEN destroys all machines it cannot use.
 - `WarMachineState.durability` is decremented by 1 for each surviving Ballista / Catapult.
-```
 
 ---
 
@@ -1506,7 +1505,7 @@ This condition is checked in addition to the standard conditions in §6.7.
 
 #### DRIVEN Victory — War Machine Disposition
 
-When DRIVEN wins the battle, all war machines (Catapult, Ballista) remaining on the
+When DRIVEN wins the battle, all war machines (Catapult, Ballista etc) remaining on the
 field are **destroyed** — DRIVEN will not keep what they cannot use.
 `BattleResult.winnerArmy.warMachines` is empty for both sides — DRIVEN destroys all
 machines on the field and keeps none.
@@ -1521,13 +1520,13 @@ The battle module renders as two side-by-side `FantasyBorderFrame` panels fillin
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│  <FantasyBorderFrame>          │  <FantasyBorderFrame>                       │
-│  Army Panel (240 px, left)     │  Battlefield (remaining width, right)       │
-│                                │                                             │
+│  <FantasyBorderFrame>          │  <FantasyBorderFrame>                      │
+│  Army Panel (240 px, left)     │  Battlefield (remaining width, right)      │
+│                                │                                            │
 │  [pack list]                   │  <div> ← Phaser canvas mounted here        │
-│  [pack info on selection]      │    [Phaser canvas fills content area]       │
-│                                │    [Zone React overlays on top — deploy]    │
-│  [Ready] [Retreat]             │    [BattleUIScene overlays — battle]        │
+│  [pack info on selection]      │    [Phaser canvas fills content area]      │
+│                                │    [Zone React overlays on top — deploy]   │
+│  [Ready] [Retreat]             │    [BattleUIScene overlays — battle]       │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
