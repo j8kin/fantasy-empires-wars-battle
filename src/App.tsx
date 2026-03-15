@@ -1,7 +1,7 @@
-import { Game } from './components/Game'
+import { BattleLayout } from './components/battle/BattleLayout';
 
 function App() {
-  return <Game />
+  return <BattleLayout />;
 }
 
-export default App
+export default App;

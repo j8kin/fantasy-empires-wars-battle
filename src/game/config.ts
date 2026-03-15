@@ -1,16 +1,15 @@
-import Phaser from 'phaser'
-import { BootScene } from './scenes/BootScene'
-import { GameScene } from './scenes/GameScene'
-import { UIScene } from './scenes/UIScene'
+import Phaser from 'phaser';
+import { PreloadScene } from './scenes/PreloadScene';
+import { DeployScene } from './scenes/DeployScene';
 
 export const gameConfig: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
-  backgroundColor: '#1a1a2e',
+  transparent: true,
   scale: {
     mode: Phaser.Scale.RESIZE,
     autoCenter: Phaser.Scale.CENTER_BOTH,
     width: '100%',
     height: '100%',
   },
-  scene: [BootScene, GameScene, UIScene],
-}
+  scene: [PreloadScene, DeployScene],
+};
