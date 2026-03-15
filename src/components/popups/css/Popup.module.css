@@ -1,0 +1,73 @@
+/* Common popup styles */
+.popupContent {
+  padding: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: rgba(0, 0, 0, 0.9);
+  border-radius: 4px;
+}
+
+/* Common header styles */
+.header {
+  display: flex;
+  align-items: center;
+  padding: 6px 12px;
+  background: linear-gradient(135deg, #4a3c2a, #654321);
+  border-bottom: 1px solid #8b6f47;
+  border-radius: 4px 4px 0 0;
+}
+
+/* Common title styles */
+.title {
+  margin: 0;
+  font-weight: bold;
+  color: #ffd700;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+/* Common characteristics section */
+.characteristics {
+  padding: 8px 12px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+
+/* Common row layout */
+.row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 8px;
+}
+
+.row:last-child {
+  margin-bottom: 0;
+}
+
+/* Common label styles */
+.label {
+  font-weight: bold;
+  color: #cccccc;
+  flex-shrink: 0;
+}
+
+/* Common value styles */
+.value {
+  color: #ffffff;
+  text-align: right;
+  flex-grow: 1;
+  margin-left: 8px;
+}
+
+/* Simple popup message style (for basic popups) */
+.message {
+  margin: 0;
+  font-size: 16px;
+  font-weight: bold;
+  color: #ffd700;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+  text-align: center;
+}

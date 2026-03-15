@@ -1,0 +1,56 @@
+.blockingOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.7);
+  z-index: 1000;
+  pointer-events: all;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  height: 100%;
+  gap: 30px;
+}
+
+.progressBar {
+  width: 300px;
+  height: 8px;
+  background-color: rgba(139, 115, 85, 0.3);
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid #8b7355;
+}
+
+.progressBarFill {
+  height: 100%;
+  background: linear-gradient(90deg, #d4af37, #f4d03f, #d4af37);
+  background-size: 200% 100%;
+  animation: progressAnimation 2s linear infinite;
+  width: 100%;
+}
+
+@keyframes progressAnimation {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.message {
+  color: #f5f5dc;
+  font-size: 16px;
+  text-align: center;
+  font-family: 'Cinzel', serif;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+  max-width: 300px;
+  line-height: 1.4;
+}
