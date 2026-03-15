@@ -23,6 +23,7 @@
 9. [Development Steps](#9-development-steps)
 10. [Resolved Decisions](#10-resolved-decisions)
 11. [Unit Type Reference](#11-unit-type-reference)
+12. [Open Questions](#12-open-questions)
 
 ---
 
@@ -1551,6 +1552,26 @@ machines on the field and keeps none.
 
 ## 8. Scene Architecture
 
+#### UI Concept
+
+The battle module is built around one core nesting principle:
+
+```
+╔══════════════════════════════════════╗
+║  FantasyBorderFrame (Battlefield)    ║
+║  ┌────────────────────────────────┐  ║
+║  │  Phaser canvas                 │  ║
+║  │    CelticBackground.png tiled  │  ║
+║  │    DeployScene / BattleScene   │  ║
+║  └────────────────────────────────┘  ║
+╚══════════════════════════════════════╝
+```
+
+The `FantasyBorderFrame` (celtic corner ornaments + tiled border art) provides the decorative
+window. The Phaser canvas — with `CelticBackground.png` tiled across the 4000 × 4000 px world —
+fills the content area inside it. React popups and zone overlay frames are absolute-positioned
+siblings above the canvas, also inside the same content div.
+
 #### Overall React Layout
 
 The battle module renders as two side-by-side `FantasyBorderFrame` panels filling the screen:
@@ -1558,21 +1579,67 @@ The battle module renders as two side-by-side `FantasyBorderFrame` panels fillin
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │  <FantasyBorderFrame>          │  <FantasyBorderFrame>                      │
-│  Army Panel (240 px, left)     │  Battlefield (remaining width, right)      │
+│  Army Panel (240 px, left)     │  Battlefield (windowWidth − 240 px, right) │
 │                                │                                            │
-│  [pack list]                   │  <div> ← Phaser canvas mounted here        │
-│  [pack info on selection]      │    [Phaser canvas fills content area]      │
-│                                │    [Zone React overlays on top — deploy]   │
-│  [Ready] [Retreat]             │    [BattleUIScene overlays — battle]       │
+│  [pack list]                   │  children={<Game />}                       │
+│  [pack info on selection]      │    └─ <div 100% × 100%>                    │
+│                                │         └─ Phaser canvas                  │
+│  [Ready] [Retreat]             │              CelticBackground.png tiled    │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-The Phaser `<canvas>` is mounted as a child of the Battlefield `FantasyBorderFrame` content area.
-Zone boundary `FantasyBorderFrame` overlays are also children of the same content area div.
+The `<Game />` component is passed as `children` to the Battlefield `FantasyBorderFrame`.
+It renders `<div style={{ width: '100%', height: '100%' }}>` which fills the content area.
+Phaser (`Scale.RESIZE` mode) sizes its canvas to match that div automatically.
+
+Zone boundary `FantasyBorderFrame` overlays are additional children of the same content
+area div, stacked above the Phaser canvas via `z-index`.
 
 **Why this works for zone frames:** during the Deploy Phase the camera is fixed and shows the
 entire world. Zone boundaries map directly to proportional heights of the canvas content area
 (top 20% = attacker zone, etc.) — no world-coordinate tracking is needed.
+
+#### Two Primary Phaser Scenes
+
+The battle module has two primary Phaser scenes that run sequentially:
+
+| Scene         | Entered from       | Camera     | Purpose                                       |
+|---------------|--------------------|------------|-----------------------------------------------|
+| `DeployScene` | PreloadScene       | Fixed      | Full-world-visible army placement             |
+| `BattleScene` | DeployScene (fade) | Pan / zoom | Real-time combat                              |
+
+`DeployScene` has no Phaser UI overlay — all UI (army panel, zone frames, dialogs) is React.
+
+#### BattleUIScene — Why a Separate Phaser Scene?
+
+`BattleUIScene` is a third Phaser scene that runs **in parallel on top of** `BattleScene`.
+It is not React and it is not part of `BattleScene`. It is launched with:
+
+```typescript
+this.scene.launch('BattleUIScene');
+```
+
+**The problem it solves:** `BattleScene`'s camera pans and zooms as the player navigates the
+battlefield. Every Phaser object added to `BattleScene` moves and scales with that camera —
+including anything you would want locked to a screen corner.
+
+**The solution:** A second Phaser scene with its own independent, fixed camera. Objects added
+to `BattleUIScene` always stay at the same screen pixel position regardless of where
+`BattleScene`'s camera is looking.
+
+**What `BattleUIScene` contains (Phaser-rendered, screen-fixed):**
+
+- **Minimap** — a small rectangle in a screen corner; reads unit positions from the game world
+  each frame and draws them as coloured dots at reduced scale. Must be Phaser-rendered because
+  it needs live access to all entity positions.
+- **Target / selection indicators** — floating labels and selection rings above units, drawn in
+  world space but managed from a camera-independent context.
+
+**What `BattleUIScene` does NOT contain (those are React):**
+
+- Battle log panel (`FantasyBorderFrame`, docked corner, scrollable)
+- Selection info popup (`PopupWrapper`, appears near selected unit)
+- Retreat button (React button with confirmation dialog)
 
 #### Phaser Scene Graph
 
@@ -1785,6 +1852,8 @@ stone texture**. React layers stay transparent or use a dark overlay — never r
 | OQ-45 | What colours represent the two sides on the minimap?                                  | **Player's army = blue dot**, **enemy army = red dot** — regardless of which side (attacker or defender) the player controls. See §3.4.                                                                                                                                                                                                                                                                                               |
 | OQ-46 | Is a minimap needed during the Deploy Phase?                                          | **No.** During Deploy the full battlefield is visible (fixed camera), making a minimap redundant. Minimap is Battle Phase only (`BattleUIScene`). See §3.4.                                                                                                                                                                                                                                                                           |
 | OQ-47 | How are placed packs labelled / interacted with on the canvas?                        | Clicking a placed pack (or its row in the army panel) opens a **pack info panel** showing unit type, rank, count, and key stats. The info panel also offers a **Remove** action that unplaces the pack and returns it to the army list. No floating count badge on the rectangle is required — info is on demand. See §5.1.                                                                                                           |
+| OQ-48 | Two-panel layout: how should panel sizes be calculated and do they need to update on window resize? | Layout is **stable** — no resize handling needed. `BattleLayout` reads `window.innerWidth` and `window.innerHeight` once at mount. Army panel = 240 px wide; battlefield = `windowWidth − 240` px wide. Both panels fill 100% of viewport height. Values are not updated after mount. The game runs at session-start dimensions. See §8. |
+| OQ-49 | Scene file naming: current files are `BootScene.ts`, `GameScene.ts`, `UIScene.ts` (all placeholders). How should migration to spec-named scenes happen? | **Delete all three placeholder files** and create new scene files from scratch with the correct Step 1 implementation: `PreloadScene.ts`, `DeployScene.ts`. `BattleScene.ts` and `BattleUIScene.ts` are added in Step 3. `config.ts` is updated to list the new scene names. See §8. |
 
 ---
 
@@ -1916,4 +1985,10 @@ export type BuildingType = 'castle-wall' | 'gate' | 'tower' | 'keep' | 'barracks
 
 ---
 
-*Last updated: 2026-03-15 (OQ-23 – OQ-34 resolved; Phase 1 ready)*
+*Last updated: 2026-03-15 (OQ-48–OQ-49 resolved; §8 BattleUIScene explanation added; §12 closed)*
+
+---
+
+## 12. Open Questions
+
+*No open questions. All decisions resolved — see §10.*
