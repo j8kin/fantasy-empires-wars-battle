@@ -61,13 +61,14 @@ export type BuildingType = 'castle-wall' | 'gate' | 'tower' | 'keep' | 'barracks
 // ── Core combat types ─────────────────────────────────────────────────────────
 
 export interface CombatStats {
-  hp: number;
-  attack: number;
-  armor: number;
-  moveSpeed: number;
-  attackSpeed: number;  // attacks per second
-  accuracy?: number;    // 0.0–1.0; undefined = always hits (melee)
-  range?: number;       // px; undefined = melee
+  health: number;
+  attack: number;        // melee damage
+  defense: number;       // damage reduction
+  speed: number;         // movement speed
+  attackSpeed: number;   // attacks per second
+  range?: number;        // px; defined = unit has ranged capability
+  rangeDamage?: number;  // ranged damage; if absent, ranged units fall back to attack value
+  accuracy?: number;     // 0.0–1.0; ranged accuracy (1.0 = always hits); undefined = always hits (melee)
 }
 
 /** Artifact is opaque to the RTS — received in HeroState and returned unchanged. */
@@ -102,6 +103,12 @@ export interface WarMachineState {
   count: number;
   /** How many battles this machine can survive before destruction. Decrements each battle. */
   durability: number;
+  /**
+   * Unit types eligible to crew (operate) this machine.
+   * Provided by TBS from Faction Restrictions. Only these unit types may load,
+   * operate, or capture this machine in battle. Always a subset of melee unit types.
+   */
+  eligibleCrewTypes: RegularUnitType[];
 }
 
 // ── Battlefield config ────────────────────────────────────────────────────────
@@ -110,8 +117,8 @@ export type TerrainType = 'plains' | 'forest' | 'swamp' | 'mountains' | 'snow';
 
 export interface StructureConfig {
   type: BuildingType;
-  hp: number;
-  armor: number;
+  health: number;
+  defense: number;
 }
 
 export interface BattlefieldConfig {

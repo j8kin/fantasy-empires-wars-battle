@@ -94,8 +94,8 @@ export interface BattlefieldConfig {
 
 export interface StructureConfig {
     type: 'castle-wall' | 'gate' | 'tower' | 'keep' | 'barracks';
-    hp: number;
-    armor: number;
+    health: number;
+    defense: number;
 }
 ```
 
@@ -383,8 +383,8 @@ rectangle whenever `textureKey` is not yet loaded.
 #### Screen Layout
 
 ```
-┌───────────────────────────────────────────────────────────────────────┐
-│  Army Panel (FantasyBorderFrame, ~240 px wide)  │  Battlefield         │
+┌─────────────────────────────────────────────────────────────────────────┐
+│  Army Panel (FantasyBorderFrame, ~440 px wide)  │  Battlefield          │
 │                                                 │  (FantasyBorderFrame  │
 │  [pack list grouped by unit type]               │   containing Phaser   │
 │  [unit count / deployed count per type]         │   canvas)             │
@@ -393,7 +393,7 @@ rectangle whenever `textureKey` is not yet loaded.
 │                                                 │   world visible]      │
 │                                                 │                       │
 │  [Ready for Battle btn] [Retreat btn]           │                       │
-└───────────────────────────────────────────────────────────────────────┘
+└─────────────────────────────────────────────────────────────────────────┘
 ```
 
 #### Deployment Steps
@@ -442,6 +442,14 @@ Zone boundaries use the **celtic-style border assets** from the TBS application.
 - **Labels:** "ATTACKER ZONE", "NEUTRAL", "DEFENDER ZONE" inside each frame's content area.
 - **During battle:** all zone overlay frames are unmounted; full battlefield equally lit.
 
+> **Step 1 placeholder:** `DeployScene` draws subtle colored tints (blue / yellow / red) directly
+> in Phaser to make zones visually distinct before the full CSS system is wired up.
+> In Step 2, when `BattleContext` (and `playerSide`) is connected to `BattleLayout`,
+> these Phaser fills are removed and replaced by CSS `filter: brightness(...)` on the
+> zone `FantasyBorderFrame` components based on the player's role.
+> Zone labels ("ATTACKER ZONE", "NEUTRAL", "DEFENDER ZONE") are React children
+> inside each zone frame's content area from Step 1 onwards.
+
 #### Army Panel
 
 The army panel is a `<FantasyBorderFrame>` docked to the **left** side of the screen.
@@ -450,7 +458,7 @@ The army panel is a `<FantasyBorderFrame>` docked to the **left** side of the sc
 ```tsx
 <FantasyBorderFrame
     screenPosition={{x: 0, y: 0}}
-    frameSize={{width: 240, height: windowHeight}}
+    frameSize={{width: 440, height: windowHeight}}
     accessible={true}        // no backdrop — the Phaser canvas remains interactive
     flexibleSizing={false}   // fixed height to fill the viewport
     primaryButton={<ReadyForBattleButton/>}
@@ -1583,7 +1591,7 @@ The battle module renders as two side-by-side `FantasyBorderFrame` panels fillin
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │  <FantasyBorderFrame>          │  <FantasyBorderFrame>                      │
-│  Army Panel (240 px, left)     │  Battlefield (windowWidth − 240 px, right) │
+│  Army Panel (440 px, left)     │  Battlefield (windowWidth − 440 px, right) │
 │                                │                                            │
 │  [pack list]                   │  children={<Game />}                       │
 │  [pack info on selection]      │    └─ <div 100% × 100%>                    │
@@ -1856,7 +1864,7 @@ stone texture**. React layers stay transparent or use a dark overlay — never r
 | OQ-45 | What colours represent the two sides on the minimap?                                                                                                    | **Player's army = blue dot**, **enemy army = red dot** — regardless of which side (attacker or defender) the player controls. See §3.4.                                                                                                                                                                                                                                                                                               |
 | OQ-46 | Is a minimap needed during the Deploy Phase?                                                                                                            | **No.** During Deploy the full battlefield is visible (fixed camera), making a minimap redundant. Minimap is Battle Phase only (`BattleUIScene`). See §3.4.                                                                                                                                                                                                                                                                           |
 | OQ-47 | How are placed packs labelled / interacted with on the canvas?                                                                                          | Clicking a placed pack (or its row in the army panel) opens a **pack info panel** showing unit type, rank, count, and key stats. The info panel also offers a **Remove** action that unplaces the pack and returns it to the army list. No floating count badge on the rectangle is required — info is on demand. See §5.1.                                                                                                           |
-| OQ-48 | Two-panel layout: how should panel sizes be calculated and do they need to update on window resize?                                                     | Layout is **stable** — no resize handling needed. `BattleLayout` reads `window.innerWidth` and `window.innerHeight` once at mount. Army panel = 240 px wide; battlefield = `windowWidth − 240` px wide. Both panels fill 100% of viewport height. Values are not updated after mount. The game runs at session-start dimensions. See §8.                                                                                              |
+| OQ-48 | Two-panel layout: how should panel sizes be calculated and do they need to update on window resize?                                                     | Layout is **stable** — no resize handling needed. `BattleLayout` reads `window.innerWidth` and `window.innerHeight` once at mount. Army panel = 440 px wide; battlefield = `windowWidth − 440` px wide. Both panels fill 100% of viewport height. Values are not updated after mount. The game runs at session-start dimensions. See §8.                                                                                              |
 | OQ-49 | Scene file naming: current files are `BootScene.ts`, `GameScene.ts`, `UIScene.ts` (all placeholders). How should migration to spec-named scenes happen? | **Delete all three placeholder files** and create new scene files from scratch with the correct Step 1 implementation: `PreloadScene.ts`, `DeployScene.ts`. `BattleScene.ts` and `BattleUIScene.ts` are added in Step 3. `config.ts` is updated to list the new scene names. See §8.                                                                                                                                                  |
 | OQ-50 | Should `WarMachineState` carry `crewCount: number` from TBS?                                                                                            | **No.** Crew count is always the pack size — the entire selected pack loads into the machine (up to 20 units). There is no per-machine minimum. Hardcoded `crewCount` column removed from §11 crew table. `maxCrewHP = crewCount × crewUnit.combatStats.health` where `crewCount` = pack.count. See §5.2, §6.10.1.                                                                                                                    |
 | OQ-51 | Should `RegularsState` carry `attackType: 'melee' \| 'ranged'` from TBS?                                                                                | **No explicit field needed.** Ranged units are identified by the presence of `combatStats.range` and `combatStats.rangeDamage` in their `CombatStats`. `eligibleCrewTypes` on `WarMachineState` already encodes which unit types may crew machines (always melee types — TBS never puts a ranged unit there). Ranged units use `combatStats.rangeDamage` for attack damage; melee units use `combatStats.attack`. See §6.5.           |
@@ -2011,8 +2019,9 @@ export type BuildingType = 'castle-wall' | 'gate' | 'tower' | 'keep' | 'barracks
 ---
 
 *Last updated: 2026-03-16 (OQ-50–OQ-53 resolved; `CombatStats` aligned with
-TBS — `hp`→`health`, `armor`→`defense`, `moveSpeed`→`speed`, added `rangeDamage`, `attackSpeed`, `accuracy`; crew = full
-pack, `crewCount` column removed; §5.2, §6.5, §6.10, §7.5, §11 updated)*
+TBS — `hp`→`health`, `armor`→`defense`, `moveSpeed`→`speed`,
+added `rangeDamage`; `StructureConfig` `hp`→`health`, `armor`→`defense`; army panel 240→440 px; Step 1 zone overlay
+placeholder note; zone labels moved to React children; §2.1, §5.1, §5.2, §6.5, §6.10, §7.5, §8, §10, §11 updated)*
 
 ---
 

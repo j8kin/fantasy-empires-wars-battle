@@ -62,10 +62,19 @@ export function BattleLayout() {
     const y0 = worldTop;
     const y1 = worldTop + worldScreenH * attacker;
     const y2 = worldTop + worldScreenH * (attacker + neutral);
+    // Zone labels rendered as React children inside each zone frame's content area.
+    // Shadowing (own zone lit, opposing zones darkened) requires playerSide from
+    // BattleContext — implemented in Step 2 when BattleContext is wired up.
     const zoneFrames = [
-        {y: y0, h: worldScreenH * attacker, zIndex: 99, accessible: false},
-        {y: y1 - THIN_CORNER, h: worldScreenH * neutral + THIN_CORNER, zIndex: 99, accessible: false},
-        {y: y2 - THIN_CORNER, h: worldScreenH * (1 - attacker - neutral) + THIN_CORNER, zIndex: 99, accessible: true},
+        {y: y0, h: worldScreenH * attacker, zIndex: 99, accessible: true, label: 'ATTACKER ZONE'},
+        {y: y1 - THIN_CORNER, h: worldScreenH * neutral + THIN_CORNER, zIndex: 99, accessible: false, label: 'NEUTRAL'},
+        {
+            y: y2 - THIN_CORNER,
+            h: worldScreenH * (1 - attacker - neutral) + THIN_CORNER,
+            zIndex: 99,
+            accessible: false,
+            label: 'DEFENDER ZONE'
+        },
     ];
 
     // ── ProgressPopup centre ─────────────────────────────────────────────────────
@@ -97,7 +106,21 @@ export function BattleLayout() {
                 <span style={{opacity: 0.5, fontSize: 12, color: "black"}}>(implemented in Step 2)</span>
             </div>
 
-            {/* ── Right: battlefield ────────────────────────────────────────────── */}
+            {/* ── Right: Phaser canvas host — must be in the DOM before useEffect ─── */}
+            {/* Phaser appends its <canvas> inside this div; RESIZE mode sizes it    */}
+            {/* to match canvasW × canvasH, which mirrors DeployScene.fitCameraToWorld */}
+            <div
+                ref={containerRef}
+                style={{
+                    position: 'fixed',
+                    left: ARMY_PANEL_WIDTH + CORNER_SIZE,
+                    top: CORNER_SIZE,
+                    width: canvasW,
+                    height: canvasH,
+                    zIndex: 2,
+                }}
+            />
+
             {/* ── Thin zone frames (visible once Phaser has rendered the zones) ─── */}
             {!loading && zoneFrames.map((zone, i) => (
                 <FantasyBorderFrame
@@ -108,7 +131,21 @@ export function BattleLayout() {
                     accessible={zone.accessible}
                     zIndex={zone.zIndex}
                 >
-                    {null}
+                    <div style={{
+                        width: '100%',
+                        height: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#c8a87a',
+                        fontSize: 13,
+                        fontFamily: 'serif',
+                        letterSpacing: '0.12em',
+                        pointerEvents: 'none',
+                        userSelect: 'none',
+                    }}>
+                        {zone.label}
+                    </div>
                 </FantasyBorderFrame>
             ))}
 
